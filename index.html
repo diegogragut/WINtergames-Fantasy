@@ -211,6 +211,27 @@ td.r, th.r { text-align: right; }
 .pos { font-family: var(--display); font-weight: 700; letter-spacing: .06em; font-size: 14px; }
 .pos.none { color: var(--muted); font-weight: 500; }
 .posselect { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; font-size: 12px; }
+.poswrap { display: flex; align-items: center; gap: 6px; }
+.adjbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 6px; padding: 2px 7px; font-size: 12px; font-weight: 700; line-height: 1.4; }
+.adjbtn:hover { background: var(--gold); color: var(--ink); }
+.adjmark { font-size: 10px; color: var(--muted); font-weight: 600; margin-left: 4px; }
+.adjpanel { border-bottom: 1px solid var(--line); background: var(--panel-2); padding: 14px 16px; display: grid; gap: 10px; }
+.adj-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.adj-head b { display: block; font-family: var(--display); font-size: 22px; letter-spacing: .02em; line-height: 1.1; margin-top: 2px; }
+.adj-head small { color: var(--muted); }
+.adj-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.adj-list li { display: flex; align-items: center; gap: 10px; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
+.adj-list .pts { font-family: var(--display); font-weight: 700; font-size: 18px; min-width: 40px; }
+.adj-list .pts.plus { color: var(--good); } .adj-list .pts.minus { color: var(--bad); }
+.adj-list .why { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.adj-list .when { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.adj-list .empty { color: var(--muted); background: transparent; border: 1px dashed var(--line); }
+.adj-form { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: 8px; }
+@media (max-width: 520px) { .adj-form { grid-template-columns: 90px minmax(0, 1fr); } .adj-form .btn { grid-column: 1 / -1; } }
+.adj-form input { width: 100%; min-width: 0; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.adj-quick { display: flex; flex-wrap: wrap; gap: 6px; }
+.adj-quick button { border: 1px solid var(--line); background: var(--ink); border-radius: 99px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+.adj-quick button:hover { border-color: var(--frost); }
 .addbtn { min-width: 64px; border-radius: 6px; padding: 5px 10px; border: 1px solid var(--frost); background: transparent; color: var(--frost); font-weight: 700; font-size: 12px; }
 .addbtn:hover:not(:disabled) { background: var(--frost); color: var(--frost-ink); }
 .addbtn.in { border-color: var(--good); color: var(--good); }
@@ -406,6 +427,28 @@ td.r, th.r { text-align: right; }
           <label class="search"><span class="eyebrow">Search</span><input id="f-q" type="search" placeholder="Player name…" autocomplete="off"></label>
         </div>
         <div class="target-hint" id="targethint" hidden></div>
+        <div class="adjpanel" id="adjpanel" hidden>
+          <div class="adj-head">
+            <div><span class="eyebrow">Organizer · adjust points</span><b id="adj-name"></b><small id="adj-sub"></small></div>
+            <button class="linkbtn" type="button" data-act="adj-close">Close</button>
+          </div>
+          <ul class="adj-list" id="adj-list"></ul>
+          <div class="adj-quick" aria-label="Quick amounts">
+            <button type="button" data-act="adj-quick" data-v="1">+1</button>
+            <button type="button" data-act="adj-quick" data-v="2">+2</button>
+            <button type="button" data-act="adj-quick" data-v="3">+3</button>
+            <button type="button" data-act="adj-quick" data-v="5">+5</button>
+            <button type="button" data-act="adj-quick" data-v="-1">−1</button>
+            <button type="button" data-act="adj-quick" data-v="-2">−2</button>
+            <button type="button" data-act="adj-quick" data-v="-5">−5</button>
+          </div>
+          <form class="adj-form" id="adj-form" novalidate>
+            <input id="adj-pts" type="number" step="1" min="-50" max="50" placeholder="+3 or −2" aria-label="Points to add or remove">
+            <input id="adj-reason" maxlength="80" placeholder="Reason, e.g. Man of the match" aria-label="Reason" autocomplete="off">
+            <button class="btn primary" type="submit" id="adj-submit">Add points</button>
+          </form>
+          <p class="err" id="adj-err" hidden></p>
+        </div>
         <div class="tablewrap">
           <table>
             <thead><tr><th>Player</th><th>WINter Team</th><th>Pos</th><th class="r">Pts</th><th class="r">Sel %</th><th class="r">Action</th></tr></thead>
@@ -459,6 +502,7 @@ td.r, th.r { text-align: right; }
           <tr><td>Yellow card</td><td class="neg-pts">−2</td></tr>
           <tr><td>Red card</td><td class="neg-pts">−5</td></tr>
         </tbody></table>
+        <p class="fine" style="margin:10px 0 0">The organizer can also add or remove points for a player (for example a man-of-the-match bonus). Each adjustment shows its reason, and players with one show <b>adj</b> next to their points.</p>
       </div>
       <div class="card">
         <h3>Accounts &amp; saving</h3>
@@ -533,6 +577,8 @@ const S = {
   squads: {},            // uid -> squad row
   stats: {},             // matchId -> { hs, as, gk: {home, away}, ev }
   positions: {},         // pid -> GK|DEF|MID|FWD
+  adjust: [],            // organizer point adjustments: { id, player_id, points, reason, created_at }
+  adjPid: null,          // player whose adjustments panel is open
   draft: { slots: Array(7).fill(null), locked: false },
   loadedMine: false, dirty: false, saving: false,
   target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
@@ -552,7 +598,8 @@ function showScreen(name) {
 /* ---------- Scoring ---------- */
 function playerTotals() {
   const t = {};
-  PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, y: 0, r: 0, pts: 0 });
+  PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, y: 0, r: 0, bonus: 0, pts: 0 });
+  S.adjust.forEach(a => { if (t[a.player_id]) t[a.player_id].bonus += +a.points || 0; });
   FIXTURES.forEach(f => {
     const s = S.stats[f.id];
     if (!s) return;
@@ -566,7 +613,7 @@ function playerTotals() {
       t[pid].g += +e.g || 0; t[pid].a += +e.a || 0; t[pid].y += +e.y || 0; t[pid].r += +e.r || 0;
     });
   });
-  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.y * 2 - x.r * 5);
+  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.y * 2 - x.r * 5 + x.bonus);
   return t;
 }
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
@@ -675,18 +722,21 @@ async function enterApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "match_stats" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "positions" }, later)
+      .on("postgres_changes", { event: "*", schema: "public", table: "player_adjustments" }, later)
       .subscribe();
   }
   showScreen("app"); showView(); render();
 }
 async function loadAll() {
-  const [pr, sq, st, po] = await Promise.all([
+  const [pr, sq, st, po, ad] = await Promise.all([
     S.sb.from("profiles").select("*"),
     S.sb.from("squads").select("*"),
     S.sb.from("match_stats").select("*"),
     S.sb.from("positions").select("*"),
+    S.sb.from("player_adjustments").select("*").order("created_at"),
   ]);
   const err = pr.error || sq.error || st.error || po.error;
+  S.adjust = ad.error ? [] : ad.data; // older databases without the table still load
   if (err) { showNotice("Couldn't refresh the league: " + err.message); return; }
   hideNotice();
   S.profiles = Object.fromEntries(pr.data.map(r => [r.id, r]));
@@ -846,13 +896,15 @@ function renderMarket(totals) {
     else if (teamFull) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="${TEAM_ERR}">2/2 team</button>`;
     else btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" ${full ? "disabled" : ""} aria-label="Add ${esc(p.name)}">Add</button>`;
     const posCell = S.owner
-      ? `<select class="posselect" data-act="pos" data-pid="${p.id}" aria-label="Position for ${esc(p.name)}"><option value="">—</option>${ROLES.map(r => `<option ${pos === r ? "selected" : ""}>${r}</option>`).join("")}</select>`
+      ? `<span class="poswrap"><select class="posselect" data-act="pos" data-pid="${p.id}" aria-label="Position for ${esc(p.name)}"><option value="">—</option>${ROLES.map(r => `<option ${pos === r ? "selected" : ""}>${r}</option>`).join("")}</select><button class="adjbtn" type="button" data-act="adj" data-pid="${p.id}" title="Add or remove points for ${esc(p.name)}" aria-label="Adjust points for ${esc(p.name)}">±</button></span>`
       : `<span class="pos ${pos ? "" : "none"}">${pos || "—"}</span>`;
+    const bonus = totals[p.id].bonus;
+    const ptsCell = `${totals[p.id].pts}${bonus ? `<span class="adjmark" title="Includes ${bonus > 0 ? "+" : ""}${bonus} from organizer adjustments">${bonus > 0 ? "+" : ""}${bonus} adj</span>` : ""}`;
     return `<tr class="${inSquad ? "mine" : ""}">
       <td><span class="pname">${esc(p.name)}${p.note ? `<small>${esc(p.note)}</small>` : ""}</span></td>
       <td class="tname" style="--team:${t.color}"><span class="tdot"></span>${esc(p.team)}</td>
       <td>${posCell}</td>
-      <td class="r num gold">${totals[p.id].pts}</td>
+      <td class="r num gold">${ptsCell}</td>
       <td class="r num">${n ? Math.round((c[p.id] || 0) / n * 100) : 0}%</td>
       <td class="r">${btn}</td></tr>`;
   }).join("") : `<tr class="empty-row"><td colspan="6">No players match these filters.</td></tr>`;
@@ -959,7 +1011,56 @@ function renderWho() {
 function render() {
   if (!S.profile) return;
   const totals = playerTotals();
-  renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals);
+  renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals); renderAdj(totals);
+}
+
+/* ---------- Organizer point adjustments ---------- */
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
+function openAdj(pid) {
+  if (!S.owner) return;
+  S.adjPid = pid;
+  $("adj-pts").value = ""; $("adj-reason").value = ""; $("adj-err").hidden = true;
+  renderAdj(playerTotals());
+  $("adjpanel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  $("adj-pts").focus();
+}
+function renderAdj(totals) {
+  const panel = $("adjpanel");
+  const p = PBYID[S.adjPid];
+  if (!S.owner || !p) { panel.hidden = true; return; }
+  panel.hidden = false;
+  const t = totals[p.id];
+  $("adj-name").textContent = p.name;
+  $("adj-sub").textContent = `${p.team} · ${t.pts} pts total (${signed(t.bonus) || "0"} from adjustments, ${t.pts - t.bonus} from matches)`;
+  const rows = S.adjust.filter(a => a.player_id === p.id);
+  $("adj-list").innerHTML = rows.length ? rows.map(a => `
+    <li><span class="pts ${a.points > 0 ? "plus" : "minus"}">${signed(a.points)}</span>
+      <span class="why">${a.reason ? esc(a.reason) : '<span class="when">No reason given</span>'}</span>
+      <span class="when">${new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+      <button class="linkbtn" type="button" data-act="adj-del" data-id="${a.id}">Remove</button></li>`).join("")
+    : `<li class="empty">No adjustments yet. Points here are added on top of goals, assists and results.</li>`;
+}
+async function addAdj(e) {
+  e.preventDefault();
+  const err = $("adj-err"); err.hidden = true;
+  const points = Number($("adj-pts").value);
+  const reason = $("adj-reason").value.trim() || null;
+  if (!Number.isInteger(points) || points === 0 || Math.abs(points) > 50) {
+    err.textContent = "Enter a whole number between −50 and +50, not 0."; err.hidden = false; $("adj-pts").focus(); return;
+  }
+  const btn = $("adj-submit"); btn.disabled = true;
+  const { data, error } = await S.sb.from("player_adjustments").insert({ player_id: S.adjPid, points, reason }).select().single();
+  btn.disabled = false;
+  if (error) { err.textContent = "Couldn't save: " + error.message; err.hidden = false; return; }
+  S.adjust.push(data);
+  $("adj-pts").value = ""; $("adj-reason").value = "";
+  render();
+}
+async function delAdj(id) {
+  const { error } = await S.sb.from("player_adjustments").delete().eq("id", id);
+  if (error) { $("adj-err").textContent = "Couldn't remove: " + error.message; $("adj-err").hidden = false; return; }
+  S.adjust = S.adjust.filter(a => String(a.id) !== String(id));
+  render();
 }
 
 /* ---------- Views ---------- */
@@ -989,6 +1090,10 @@ document.addEventListener("click", e => {
   else if (act === "ed-save") saveResult(b.dataset.mid);
   else if (act === "ed-clear") clearResult(b.dataset.mid);
   else if (act === "edit-team") openTeamForm(true);
+  else if (act === "adj") openAdj(b.dataset.pid);
+  else if (act === "adj-close") { S.adjPid = null; render(); }
+  else if (act === "adj-quick") { $("adj-pts").value = b.dataset.v; $("adj-reason").focus(); }
+  else if (act === "adj-del") delAdj(b.dataset.id);
   else if (act === "signout") signOut();
 });
 document.addEventListener("change", async e => {
@@ -1005,6 +1110,7 @@ document.addEventListener("change", async e => {
 });
 $("google-btn").addEventListener("click", signInWithGoogle);
 $("team-form").addEventListener("submit", submitTeam);
+$("adj-form").addEventListener("submit", addAdj);
 $("team-cancel").addEventListener("click", () => { showScreen("app"); render(); });
 ["f-pos","f-team"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
 $("f-q").addEventListener("input", () => renderMarket(playerTotals()));
