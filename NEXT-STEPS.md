@@ -11,13 +11,14 @@
 - **Supabase URL Configuration**: Site URL is the live site, and the redirect allow list holds the live site and `http://localhost:3000`.
 - **Google sign-in published** ("In production"): anyone with a Google account can sign in. The branding page has the home page and privacy link (`/privacy`), and the authorised domains include `wintergames-fantasy.vercel.app`.
 
+- **Organizer**: your team "Tres Rios FC" is an organizer. To add another organizer later, run this in Supabase → SQL Editor:
+  ```sql
+  insert into public.admins (user_id)
+  select id from auth.users where email = 'THEIR-GOOGLE-EMAIL';
+  ```
+
 ## Not done yet
 
-1. **Make yourself organizer** after you sign in on the live site, in Supabase → SQL Editor:
-   ```sql
-   insert into public.admins (user_id)
-   select id from auth.users where email = 'YOUR-GOOGLE-EMAIL';
-   ```
-2. **Optional, recommended**: rotate the Google client secret (Clients → WINter Fantasy → Add secret, paste the new one into Supabase, then disable the old one). The old one was briefly visible during setup.
+1. **Optional, recommended**: rotate the Google client secret (Clients → WINter Fantasy → Add secret, paste the new one into Supabase, then disable the old one). The old one was briefly visible during setup.
 
 Squads lock at the first kick-off: **Nov 12, 19:00 Costa Rica time**.
