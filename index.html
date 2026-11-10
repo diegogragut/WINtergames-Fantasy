@@ -1,0 +1,769 @@
+<title>WINter Fantasy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: sticky night-blue header, then a two-column split (pitch | transfer market) that stacks under 900px. Single dark look by design. */
+:root {
+  --ink: #070c22;
+  --panel: #0e1636;
+  --panel-2: #152049;
+  --line: #243063;
+  --text: #e9eeff;
+  --muted: #8f9bc6;
+  --frost: #8ed6ff;
+  --frost-ink: #062033;
+  --gold: #ffcb5c;
+  --good: #52d6a0;
+  --bad: #ff6f82;
+  --pitch: #0d3a39;
+  --pitch-2: #10433f;
+  --pitch-line: rgba(220, 255, 245, .16);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ink); color: var(--text); }
+body { font-family: var(--body); font-size: 14px; line-height: 1.45; min-height: 100%; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--frost); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Header */
+header.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.top-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; gap: 20px; min-height: 60px; flex-wrap: wrap; padding-block: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.brand svg { width: 30px; height: 30px; flex: none; }
+.brand b { font-family: var(--display); font-size: 24px; letter-spacing: .02em; font-weight: 700; line-height: 1; }
+.brand b span { color: var(--frost); }
+.brand small { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+nav.tabs { display: flex; gap: 4px; }
+nav.tabs a {
+  font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px;
+}
+nav.tabs a:hover { color: var(--text); }
+nav.tabs a[aria-current="page"] { color: var(--frost-ink); background: var(--frost); }
+.who { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.who img { width: 28px; height: 28px; border-radius: 50%; }
+.who .name { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
+.pill.ok { color: var(--good); }
+.pill.warn { color: var(--gold); }
+.pill.off { color: var(--muted); }
+.pill.lock { color: var(--frost); }
+
+main {
+  max-width: 1280px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.notice { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; color: var(--muted); margin-bottom: 16px; }
+.notice strong { color: var(--text); }
+h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin: 0 0 4px; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0 0 16px; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* Squad split */
+.split { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.card-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.teamname { flex: 1 1 200px; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; font-family: var(--display); font-size: 24px; font-weight: 700; letter-spacing: .02em; }
+.teamname:hover:not(:disabled), .teamname:focus { border-color: var(--line); background: var(--panel-2); }
+.pts-big { text-align: right; }
+.pts-big b { font-family: var(--display); font-size: 34px; color: var(--gold); line-height: 1; display: block; }
+
+/* Pitch */
+.pitch {
+  position: relative; margin: 16px; border-radius: 10px; overflow: hidden;
+  background: repeating-linear-gradient(180deg, var(--pitch) 0 44px, var(--pitch-2) 44px 88px);
+  border: 2px solid var(--pitch-line);
+  padding: 26px 8px 28px; display: grid; gap: 22px;
+}
+.pitch::before { content: ""; position: absolute; left: 50%; top: -60px; width: 150px; height: 120px; transform: translateX(-50%); border: 2px solid var(--pitch-line); border-radius: 0 0 50% 50%; pointer-events: none; }
+.pitch::after { content: ""; position: absolute; left: 0; right: 0; bottom: 34%; border-top: 2px solid var(--pitch-line); pointer-events: none; }
+.prow { position: relative; z-index: 1; display: flex; justify-content: space-around; gap: 8px; }
+.bench { margin: 0 16px 16px; border: 1px dashed var(--line); border-radius: 10px; padding: 12px 8px; }
+.bench .eyebrow { text-align: center; margin-bottom: 8px; }
+.bench .prow { justify-content: center; gap: 40px; }
+
+.slot { position: relative; width: 116px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; }
+.token {
+  width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+  border: 2px dashed rgba(233, 238, 255, .45); background: rgba(7, 12, 34, .35);
+  font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .04em; color: var(--text);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.slot.empty .token:hover { transform: scale(1.06); border-color: var(--frost); }
+.slot.filled .token { border: 2px solid rgba(255,255,255,.85); background: var(--team, #456); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.slot.target .token { box-shadow: 0 0 0 4px var(--frost); border-color: var(--frost); }
+.slot-name { font-weight: 600; font-size: 13px; line-height: 1.2; max-width: 116px; overflow-wrap: anywhere; background: rgba(7,12,34,.72); padding: 2px 6px; border-radius: 4px; }
+.slot.empty .slot-name { background: transparent; color: var(--muted); font-weight: 500; }
+.slot-meta { font-size: 11px; color: var(--muted); }
+.slot-meta .p { color: var(--gold); font-weight: 700; }
+.role { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--frost); }
+.remove { position: absolute; top: -4px; right: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--bad); color: #fff; font-weight: 700; line-height: 1; display: grid; place-items: center; }
+.remove:hover { filter: brightness(1.15); }
+
+.status { border-top: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 10px; }
+.status-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.status-row .count { font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); }
+.chip.full { color: var(--gold); border-color: var(--gold); }
+.chip.over { color: var(--bad); border-color: var(--bad); }
+.err { color: var(--bad); font-weight: 600; }
+.okmsg { color: var(--good); font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 8px 14px; font-weight: 600; }
+.btn:hover:not(:disabled) { border-color: var(--frost); }
+.btn.primary { background: var(--frost); color: var(--frost-ink); border-color: var(--frost); }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.deadline { color: var(--muted); font-size: 12px; }
+details.json { font-size: 12px; color: var(--muted); }
+details.json pre { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 260px; color: var(--text); }
+
+/* Market */
+.filters { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+@media (max-width: 520px) { .filters { grid-template-columns: 1fr 1fr; } .filters .search { grid-column: 1 / -1; } }
+.filters label { display: grid; gap: 4px; min-width: 0; }
+.filters select, .filters input { width: 100%; min-width: 0; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.target-hint { padding: 8px 16px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: 13px; display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.target-hint b { color: var(--frost); }
+.linkbtn { background: none; border: 0; color: var(--frost); text-decoration: underline; padding: 0; }
+.tablewrap { overflow: auto; max-height: 640px; }
+table { width: 100%; border-collapse: collapse; }
+th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--line); z-index: 1; white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid rgba(36, 48, 99, .6); vertical-align: middle; }
+tr.mine td { background: rgba(142, 214, 255, .06); }
+td.r, th.r { text-align: right; }
+.pname { font-weight: 600; }
+.pname small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.tdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--team); margin-right: 6px; vertical-align: middle; }
+.tname { white-space: nowrap; color: var(--muted); }
+.pos { font-family: var(--display); font-weight: 700; letter-spacing: .06em; font-size: 14px; }
+.pos.none { color: var(--muted); font-weight: 500; }
+.posselect { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; font-size: 12px; }
+.addbtn { min-width: 64px; border-radius: 6px; padding: 5px 10px; border: 1px solid var(--frost); background: transparent; color: var(--frost); font-weight: 700; font-size: 12px; }
+.addbtn:hover:not(:disabled) { background: var(--frost); color: var(--frost-ink); }
+.addbtn.in { border-color: var(--good); color: var(--good); }
+.addbtn:disabled { border-color: var(--line); color: var(--muted); cursor: not-allowed; }
+.addbtn.in:disabled { border-color: var(--good); color: var(--good); }
+.gold { color: var(--gold); font-weight: 700; }
+.empty-row td { color: var(--muted); text-align: center; padding: 24px; }
+
+/* Matches */
+.days { display: grid; gap: 18px; }
+.day h3 { font-family: var(--display); font-size: 18px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.fixture { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+.fx-row { display: grid; grid-template-columns: 64px minmax(0,1fr) 90px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 12px 14px; }
+.fx-time { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--frost); }
+.fx-team { font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fx-team.home { justify-content: flex-end; text-align: right; }
+.fx-score { text-align: center; font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: .04em; }
+.fx-score.vs { font-size: 15px; color: var(--muted); font-weight: 600; }
+.fx-badge { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--good); }
+@media (max-width: 620px) {
+  .fx-row { grid-template-columns: minmax(0,1fr) 70px minmax(0,1fr); }
+  .fx-time { grid-column: 1 / -1; font-size: 15px; }
+  .fx-row .fx-act { grid-column: 1 / -1; justify-self: start; }
+}
+.editor { border-top: 1px solid var(--line); padding: 14px; display: grid; gap: 14px; }
+.ed-score { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ed-score input { width: 64px; text-align: center; font-family: var(--display); font-size: 22px; font-weight: 700; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px; }
+.ed-teams { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+@media (max-width: 760px) { .ed-teams { grid-template-columns: minmax(0,1fr); } }
+.ed-team { background: var(--panel-2); border-radius: 8px; padding: 10px; min-width: 0; }
+.ed-team h4 { margin: 0 0 8px; font-family: var(--display); font-size: 18px; letter-spacing: .03em; }
+.ed-team label.gk { display: grid; gap: 4px; margin-bottom: 8px; }
+.ed-team select { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+.ed-team table td, .ed-team table th { padding: 4px; position: static; background: transparent; }
+.ed-team input[type=number] { width: 44px; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px; text-align: center; }
+
+/* Table */
+.lb-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .lb-grid { grid-template-columns: minmax(0,1fr); } }
+.rank { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--muted); width: 36px; }
+tr:first-child .rank.top { color: var(--gold); }
+
+/* Rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.rules .card { padding: 16px 18px; }
+.rules h3 { font-family: var(--display); font-size: 20px; letter-spacing: .03em; text-transform: uppercase; margin: 0 0 10px; }
+.rules ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.scoretable td { padding: 7px 4px; }
+.scoretable td:last-child { text-align: right; font-family: var(--display); font-size: 18px; font-weight: 700; }
+.pos-pts { color: var(--good); } .neg-pts { color: var(--bad); }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="#squad" aria-label="WINter Fantasy home">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="#152049" stroke="#8ed6ff" stroke-width="1.5"/>
+        <g stroke="#8ed6ff" stroke-width="2" stroke-linecap="round" fill="none">
+          <path d="M16 6v20M7.3 11l17.4 10M7.3 21l17.4-10"/>
+          <path d="M13 8l3 2.5L19 8M13 24l3-2.5 3 2.5"/>
+        </g>
+      </svg>
+      <div><b>WIN<span>ter</span> Fantasy</b><small>Winter Games 2026</small></div>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#squad" data-view="squad">Squad</a>
+      <a href="#matches" data-view="matches">Matches</a>
+      <a href="#table" data-view="table">Table</a>
+      <a href="#rules" data-view="rules">Rules</a>
+    </nav>
+    <div class="who" id="who"><span class="pill off">Connecting…</span></div>
+  </div>
+</header>
+
+<main>
+  <div id="notice" class="notice" hidden></div>
+
+  <section id="view-squad" data-viewpanel="squad">
+    <div class="split">
+      <div class="card" id="pitchcard">
+        <div class="card-head">
+          <input id="teamname" class="teamname" maxlength="32" placeholder="Name your fantasy team" aria-label="Fantasy team name">
+          <div class="pts-big"><span class="eyebrow">Total points</span><b class="num" id="mypts">0</b></div>
+        </div>
+        <div class="pitch" id="pitch"></div>
+        <div class="bench">
+          <div class="eyebrow">Bench · 0 pts</div>
+          <div class="prow" id="benchrow"></div>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+
+      <div class="card" id="market">
+        <div class="card-head">
+          <div>
+            <div class="eyebrow">Transfer market</div>
+            <div style="font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em" id="mkt-count">12 WINter teams</div>
+          </div>
+        </div>
+        <div class="filters">
+          <label><span class="eyebrow">Position</span>
+            <select id="f-pos"><option value="ALL">All</option><option>GK</option><option>DEF</option><option>MID</option><option>FWD</option><option value="NONE">Not set</option></select>
+          </label>
+          <label><span class="eyebrow">Team</span><select id="f-team"><option value="ALL">All teams</option></select></label>
+          <label class="search"><span class="eyebrow">Search</span><input id="f-q" type="search" placeholder="Player name…" autocomplete="off"></label>
+        </div>
+        <div class="target-hint" id="targethint" hidden></div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Player</th><th>WINter Team</th><th>Pos</th><th class="r">Pts</th><th class="r">Sel %</th><th class="r">Action</th></tr></thead>
+            <tbody id="mkt"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-matches" data-viewpanel="matches" hidden>
+    <h2 class="sec">Fixtures &amp; results</h2>
+    <p class="sub" id="matches-sub">12 matches, Nov 12 – Nov 23. Times are Costa Rica time.</p>
+    <div class="days" id="days"></div>
+  </section>
+
+  <section id="view-table" data-viewpanel="table" hidden>
+    <h2 class="sec">League table</h2>
+    <p class="sub">Every complete 7-player squad. Points come from the 5 starters only.</p>
+    <div class="lb-grid">
+      <div class="card"><div class="tablewrap" style="max-height:none">
+        <table><thead><tr><th>#</th><th>Team</th><th>Manager</th><th class="r">Status</th><th class="r">Pts</th></tr></thead><tbody id="lb"></tbody></table>
+      </div></div>
+      <div class="card"><div class="card-head"><div class="eyebrow">Top scoring players</div></div><div class="tablewrap" style="max-height:none">
+        <table><thead><tr><th>Player</th><th class="r">G</th><th class="r">A</th><th class="r">Pts</th></tr></thead><tbody id="topp"></tbody></table>
+      </div></div>
+    </div>
+  </section>
+
+  <section id="view-rules" data-viewpanel="rules" hidden>
+    <h2 class="sec">How WINter Fantasy works</h2>
+    <p class="sub">One squad per manager for the whole tournament.</p>
+    <div class="rules">
+      <div class="card">
+        <h3>Your squad</h3>
+        <ul>
+          <li>Pick exactly <strong>7 players</strong>: 5 starters and 2 bench.</li>
+          <li>Starters fill GK, DEF, DEF, MID and FWD. Only starters score; the bench earns 0.</li>
+          <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
+          <li>Save as often as you like until the first kick-off. Lock early if you want it final.</li>
+          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. Only complete squads score.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Scoring</h3>
+        <table class="scoretable"><tbody>
+          <tr><td>Goal</td><td class="pos-pts">+5</td></tr>
+          <tr><td>Assist</td><td class="pos-pts">+2</td></tr>
+          <tr><td>Match win (every player on the winning team)</td><td class="pos-pts">+1</td></tr>
+          <tr><td>Goalkeeper clean sheet</td><td class="pos-pts">+3</td></tr>
+          <tr><td>Yellow card</td><td class="neg-pts">−2</td></tr>
+          <tr><td>Red card</td><td class="neg-pts">−5</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h3>Accounts &amp; saving</h3>
+        <ul>
+          <li>You sign in with your Claude account. Your squad is saved to it and follows you to any device.</li>
+          <li>Selection % is the share of complete squads that include a player.</li>
+          <li>The league organizer enters each result, scorers, cards and goalkeepers after the final whistle. Points update for everyone at once.</li>
+          <li>Positions are set by the organizer. A player without a position can fill any slot.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ---------- Tournament data ---------- */
+const TEAMS = [
+  ["Garbanzo FC","GAR",["Agustin Mendez","Alejandro garro","Alejandro Vasquez","Diego Gutierrez","Felipe Gomez","Gabriel Mata","Nicholas Cook","Patrick Ferris","Santiago Mora","Stefano Battaglini"]],
+  ["La Granja FC","LGR",["David Cascante","David Sandi","Diego Saldana","Dylan Alfaro","Felipe Coronas","Gabriel Soto","Emiliano Guier","Jan Saravia","Jose Miguel","Kai Andre"]],
+  ["Limon 2000","L2K",["Alejandro Ulloa","Andres Quesada","Diego Orozco","Felipe Campos","Felipe Pena","Gianluca Fonseca","Nicolas Rivera","Santiago Jimenez","Santiago Mena"]],
+  ["Ayotazo FC","AYO",["Alan Woodbridge","Alejandro Madrigal","Antonio Jimenez","Ayote","Emiliano Crivelli","Ignacio Bogantes","Matias Alfaro","Sergio Sauma"]],
+  ["Sin Pulmón","SPU",["Gafas","Alberto Pacheco","Alessandro de Carlo","Antonio Fernandez","Daniel Bolanos","Diego Granados","Emiliano Mendez","Ignacio Garnier","Julian Garnier","Sebastian Madrigal"]],
+  ["Zopilotes FC","ZOP",["Alejandro Soto","Andres Rodriguez","Antonio Carballo","Daniel Coto","Ignacio Jaramillo","Julian Regueyra","Luis Fernando Cedeno","Martin Salom"]],
+  ["Guadamuz","GDZ",["Emilio Artavia","Felipe Ferraro","Jupa Popi","Luis Carlos","Oscar Saborio","Raymond Semaan","Sebastian Solera"]],
+  ["JogoBonito","JOG",["Andres Rucavado","Ian Goldberg","Ignacio Child","Javier Sanabria","Luciano Soto","Randy Xirinachs"]],
+  ["Limon Stars","LST",["Andres Soto","Antonio Jimenez","Emilio Atmella","Eric Brenes","Luciano Segnini","Patrick van der Laat"]],
+  ["Brasimoreros","BRA",["Agustin Pacheco|Captain","Eduardo Odio","Julian Segura","Marco Olivo","Martin Castro","Stefan Matzen","Tomas Quijano"]],
+  ["Guaraní FC","GUR",["Alberto Jimenez","Alessio Riggioni","Bogis","Diego Quiros","Diego Ruiz","Emiliano Silva","Ignacio Rivera","Juanpi Chavarria","Nono Guzman","Ruben Garita"]],
+  ["Pasión FC","PAS",["Campanazo","Franco Hernandez","Garcia","Gaza","Hacha Mango","Matias Quiros","Mosquito","Pipe Bersoza","Roberto Zamora"]],
+];
+const FIXTURES = [
+  ["m01","Ayotazo FC","Sin Pulmón","2026-11-12T19:00"],
+  ["m02","Pasión FC","Brasimoreros","2026-11-12T20:30"],
+  ["m03","Guadamuz","JogoBonito","2026-11-16T19:00"],
+  ["m04","Limon 2000","Garbanzo FC","2026-11-16T20:30"],
+  ["m05","Sin Pulmón","Zopilotes FC","2026-11-17T19:00"],
+  ["m06","Garbanzo FC","La Granja FC","2026-11-17T20:30"],
+  ["m07","JogoBonito","Limon Stars","2026-11-18T19:00"],
+  ["m08","Zopilotes FC","Ayotazo FC","2026-11-18T20:30"],
+  ["m09","La Granja FC","Limon 2000","2026-11-19T19:00"],
+  ["m10","Brasimoreros","Guaraní FC","2026-11-19T20:30"],
+  ["m11","Guaraní FC","Pasión FC","2026-11-23T19:00"],
+  ["m12","Limon Stars","Guadamuz","2026-11-23T20:30"],
+].map(([id, home, away, local]) => ({ id, home, away, local, at: new Date(local + ":00-06:00") }));
+const DEADLINE = FIXTURES[0].at;
+const SLOTS = ["GK","DEF","DEF","MID","FWD","BENCH","BENCH"];
+const ROLES = ["GK","DEF","MID","FWD"];
+const MAX_PER_TEAM = 2;
+const TEAM_ERR = "Invalid Squad: Maximum 2 players permitted from a single WINter team.";
+
+const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const HUES = [28, 140, 200, 45, 350, 270, 170, 95, 225, 10, 60, 315];
+const TEAM = {};
+const PLAYERS = [];
+TEAMS.forEach(([name, abbr, roster], i) => {
+  TEAM[name] = { name, abbr, color: `hsl(${HUES[i]} 62% 42%)`, players: [] };
+  roster.forEach(raw => {
+    const [pname, note] = raw.split("|");
+    const p = { id: slug(name) + "--" + slug(pname), name: pname, team: name, note: note || "" };
+    PLAYERS.push(p); TEAM[name].players.push(p);
+  });
+});
+const PBYID = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
+
+/* ---------- State ---------- */
+const S = {
+  db: null, user: null, uid: null, me: null, owner: false, canSave: false, connected: false,
+  squads: {},            // uid -> doc
+  stats: {},             // matchId -> doc
+  positions: {},         // pid -> GK|DEF|MID|FWD
+  draft: { slots: Array(7).fill(null), name: "", locked: false },
+  loadedMine: false, dirty: false, saving: false,
+  target: null, msg: null, confirmLock: false, openEditor: null,
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
+const fmtDay = d => d.toLocaleDateString("en-US", { timeZone: "America/Costa_Rica", weekday: "long", month: "short", day: "numeric" });
+const fmtTime = d => d.toLocaleTimeString("en-GB", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
+const pastDeadline = () => Date.now() >= DEADLINE.getTime();
+const isLocked = () => S.draft.locked || pastDeadline();
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+/* ---------- Scoring ---------- */
+function playerTotals() {
+  const t = {};
+  PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, y: 0, r: 0, pts: 0 });
+  FIXTURES.forEach(f => {
+    const s = S.stats[f.id];
+    if (!s || !s.played) return;
+    const hs = +s.hs || 0, as = +s.as || 0;
+    const winner = hs > as ? f.home : as > hs ? f.away : null;
+    if (winner) TEAM[winner].players.forEach(p => t[p.id].w += 1);
+    if (as === 0 && s.gk?.home && t[s.gk.home]) t[s.gk.home].cs += 1;
+    if (hs === 0 && s.gk?.away && t[s.gk.away]) t[s.gk.away].cs += 1;
+    Object.entries(s.ev || {}).forEach(([pid, e]) => {
+      if (!t[pid]) return;
+      t[pid].g += +e.g || 0; t[pid].a += +e.a || 0; t[pid].y += +e.y || 0; t[pid].r += +e.r || 0;
+    });
+  });
+  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.y * 2 - x.r * 5);
+  return t;
+}
+const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
+const squadPoints = (slots, totals) => isComplete(slots) ? slots.slice(0, 5).reduce((n, pid) => n + (totals[pid]?.pts || 0), 0) : 0;
+function selectionPct() {
+  const full = Object.values(S.squads).filter(s => isComplete(s.slots));
+  const c = {};
+  full.forEach(s => s.slots.forEach(pid => c[pid] = (c[pid] || 0) + 1));
+  return { c, n: full.length };
+}
+function teamCounts(slots) {
+  const c = {};
+  slots.forEach(pid => { if (pid) { const t = PBYID[pid]?.team; if (t) c[t] = (c[t] || 0) + 1; } });
+  return c;
+}
+const eligible = (pid, i) => SLOTS[i] === "BENCH" || !S.positions[pid] || S.positions[pid] === SLOTS[i];
+
+/* ---------- Squad actions ---------- */
+function setMsg(text, kind = "err") { S.msg = text ? { text, kind } : null; }
+function addPlayer(pid) {
+  if (isLocked()) return;
+  const d = S.draft;
+  if (d.slots.includes(pid)) return;
+  const team = PBYID[pid].team;
+  if ((teamCounts(d.slots)[team] || 0) >= MAX_PER_TEAM) { setMsg(TEAM_ERR); render(); return; }
+  let slot = null;
+  if (S.target != null && !d.slots[S.target] && eligible(pid, S.target)) slot = S.target;
+  if (slot == null) slot = [0,1,2,3,4,5,6].find(i => !d.slots[i] && eligible(pid, i));
+  if (slot == null) {
+    setMsg(d.slots.every(Boolean) ? "Your squad is full. Remove a player first." : `No open slot for a ${S.positions[pid]}. Free one up or use the bench.`);
+    render(); return;
+  }
+  d.slots[slot] = pid; S.target = null; S.dirty = true; setMsg(null); S.confirmLock = false;
+  persistLocal(); render();
+}
+function removeSlot(i) {
+  if (isLocked()) return;
+  S.draft.slots[i] = null; S.dirty = true; S.target = i; setMsg(null); S.confirmLock = false;
+  persistLocal(); render();
+}
+function persistLocal() { if (!S.uid) lsSet("wf-draft", S.draft); }
+function validation(slots) {
+  const errors = [];
+  const n = slots.filter(Boolean).length;
+  if (n < 7) errors.push(`Squad incomplete: ${n} of 7 players selected.`);
+  if (Object.values(teamCounts(slots)).some(v => v > MAX_PER_TEAM)) errors.push(TEAM_ERR);
+  return errors;
+}
+async function save(lock = false) {
+  if (!S.db || !S.uid || S.saving) return;
+  if (lock && validation(S.draft.slots).length) return;
+  S.saving = true; render();
+  const body = { name: S.draft.name.trim().slice(0, 32), slots: S.draft.slots.slice(), locked: lock || S.draft.locked, updatedAt: new Date().toISOString() };
+  try {
+    await S.db.doc("squads/" + S.uid).set(body);
+    S.draft.locked = body.locked; S.dirty = false; S.confirmLock = false;
+    setMsg(lock ? "Squad locked. Good luck!" : "Squad saved.", "ok");
+  } catch (e) {
+    if (e?.code === "invalid_argument") { S.canSave = false; setMsg("This account can view the league but not save squads. Ask the organizer to invite you as an Editor."); }
+    else if (e?.code === "unavailable") setMsg("Couldn't reach the server. Try saving again in a moment.");
+    else setMsg("Save failed: " + (e?.message || "unknown error"));
+  }
+  S.saving = false; render();
+}
+
+/* ---------- Rendering ---------- */
+function slotHTML(i, totals) {
+  const pid = S.draft.slots[i], role = SLOTS[i];
+  const tgt = S.target === i ? " target" : "";
+  const label = role === "BENCH" ? "SUB" : role;
+  if (!pid) {
+    return `<div class="slot empty${tgt}">
+      <button class="token" data-act="target" data-slot="${i}" ${isLocked() ? "disabled" : ""} aria-label="Choose a player for the ${label} slot">${label}</button>
+      <div class="slot-name">${S.target === i ? "Pick from market" : "Open"}</div></div>`;
+  }
+  const p = PBYID[pid], t = TEAM[p.team];
+  return `<div class="slot filled${tgt}" style="--team:${t.color}">
+    <div class="token" aria-hidden="true">${t.abbr}</div>
+    <div class="slot-name">${esc(p.name)}</div>
+    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)}${role !== "BENCH" ? ` · <span class="p num">${totals[pid].pts} pts</span>` : ""}</div>
+    ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
+  </div>`;
+}
+function renderSquad(totals) {
+  const pitch = $("pitch");
+  pitch.innerHTML = `
+    <div class="prow">${slotHTML(0, totals)}</div>
+    <div class="prow">${slotHTML(1, totals)}${slotHTML(2, totals)}</div>
+    <div class="prow">${slotHTML(3, totals)}${slotHTML(4, totals)}</div>`;
+  $("benchrow").innerHTML = slotHTML(5, totals) + slotHTML(6, totals);
+  const tn = $("teamname");
+  if (document.activeElement !== tn) tn.value = S.draft.name;
+  tn.disabled = isLocked();
+  $("mypts").textContent = squadPoints(S.draft.slots, totals);
+
+  const slots = S.draft.slots, n = slots.filter(Boolean).length, tc = teamCounts(slots);
+  const chips = Object.entries(tc).sort().map(([t, c]) => `<span class="chip ${c > 2 ? "over" : c === 2 ? "full" : ""}">${esc(TEAM[t].abbr)} ${c}/2</span>`).join("");
+  const errs = validation(slots);
+  const locked = isLocked();
+  let actions = "";
+  if (!S.uid) {
+    actions = `<span class="deadline">${S.connected ? "Sign in to claude.ai to save your squad. Your picks are kept in this browser for now." : "Connecting to your account…"}</span>`;
+  } else if (locked) {
+    actions = `<span class="pill lock">${S.draft.locked ? "Squad locked" : "Squads locked at kick-off"}</span>`;
+  } else if (!S.canSave) {
+    actions = `<span class="deadline">View only. Ask the organizer to invite you as an Editor to save a squad.</span>`;
+  } else if (S.confirmLock) {
+    actions = `<span>Lock this squad for the whole tournament? This can't be undone.</span>
+      <button class="btn danger" data-act="lock-confirm" ${S.saving ? "disabled" : ""}>Yes, lock it</button>
+      <button class="btn" data-act="lock-cancel">Cancel</button>`;
+  } else {
+    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty ? "disabled" : ""}>${S.saving ? "Saving…" : S.dirty ? "Save squad" : "Saved"}</button>
+      <button class="btn" data-act="lock" ${errs.length || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : ""}">Lock squad</button>`;
+  }
+  const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
+  const errLine = !S.msg && errs.some(e => e === TEAM_ERR) ? `<div class="err">${TEAM_ERR}</div>` : "";
+  $("status").innerHTML = `
+    <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
+    ${msg}${errLine}
+    <div class="actions">${actions}</div>
+    <div class="deadline">${pastDeadline() ? "The tournament is under way. Squads are final." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`}</div>
+    <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`;
+}
+function stateJSON(totals) {
+  const row = (i, active) => {
+    const pid = S.draft.slots[i]; if (!pid) return null;
+    const p = PBYID[pid];
+    return { slot: i + 1, name: p.name, team: p.team, pos: active ? SLOTS[i] : (S.positions[pid] || null), active };
+  };
+  const errs = validation(S.draft.slots);
+  return {
+    user_id: S.uid, username: S.me?.name || null, squad_name: S.draft.name || null, squad_locked: isLocked(),
+    squad: { starters: [0,1,2,3,4].map(i => row(i, true)).filter(Boolean), bench: [5,6].map(i => row(i, false)).filter(Boolean) },
+    validation_status: { total_players: S.draft.slots.filter(Boolean).length, max_per_team_compliant: !errs.includes(TEAM_ERR), errors: errs },
+    total_points: squadPoints(S.draft.slots, totals),
+  };
+}
+function renderMarket(totals) {
+  const fp = $("f-pos").value, ft = $("f-team").value, q = slug($("f-q").value || "");
+  const { c, n } = selectionPct();
+  const tc = teamCounts(S.draft.slots), locked = isLocked();
+  const hint = $("targethint");
+  if (S.target != null && !S.draft.slots[S.target] && !locked) {
+    hint.hidden = false;
+    hint.innerHTML = `<span>Adding to the <b>${SLOTS[S.target] === "BENCH" ? "bench" : SLOTS[S.target]}</b> slot.</span><button class="linkbtn" data-act="untarget">Clear</button>`;
+  } else hint.hidden = true;
+  const rows = PLAYERS.filter(p => {
+    const pos = S.positions[p.id];
+    if (fp === "NONE" ? !!pos : fp !== "ALL" && pos !== fp) return false;
+    if (ft !== "ALL" && p.team !== ft) return false;
+    if (q && !slug(p.name).includes(q)) return false;
+    return true;
+  }).sort((a, b) => totals[b.id].pts - totals[a.id].pts || a.team.localeCompare(b.team) || a.name.localeCompare(b.name));
+  $("mkt").innerHTML = rows.length ? rows.map(p => {
+    const t = TEAM[p.team], pos = S.positions[p.id];
+    const inSquad = S.draft.slots.includes(p.id);
+    const teamFull = !inSquad && (tc[p.team] || 0) >= MAX_PER_TEAM;
+    const full = !inSquad && S.draft.slots.every(Boolean);
+    let btn;
+    if (inSquad) btn = `<button class="addbtn in" disabled>In squad</button>`;
+    else if (locked) btn = `<button class="addbtn" disabled>Locked</button>`;
+    else if (teamFull) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="${TEAM_ERR}">2/2 team</button>`;
+    else btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" ${full ? "disabled" : ""} aria-label="Add ${esc(p.name)}">Add</button>`;
+    const posCell = S.owner
+      ? `<select class="posselect" data-act="pos" data-pid="${p.id}" aria-label="Position for ${esc(p.name)}"><option value="">—</option>${ROLES.map(r => `<option ${pos === r ? "selected" : ""}>${r}</option>`).join("")}</select>`
+      : `<span class="pos ${pos ? "" : "none"}">${pos || "—"}</span>`;
+    return `<tr class="${inSquad ? "mine" : ""}">
+      <td><span class="pname">${esc(p.name)}${p.note ? `<small>${esc(p.note)}</small>` : ""}</span></td>
+      <td class="tname" style="--team:${t.color}"><span class="tdot"></span>${esc(p.team)}</td>
+      <td>${posCell}</td>
+      <td class="r num gold">${totals[p.id].pts}</td>
+      <td class="r num">${n ? Math.round((c[p.id] || 0) / n * 100) : 0}%</td>
+      <td class="r">${btn}</td></tr>`;
+  }).join("") : `<tr class="empty-row"><td colspan="6">No players match these filters.</td></tr>`;
+}
+function renderMatches() {
+  if (S.openEditor) return; // keep typed values while editing
+  const byDay = {};
+  FIXTURES.forEach(f => (byDay[fmtDay(f.at)] ||= []).push(f));
+  $("matches-sub").textContent = "12 matches, Nov 12 – Nov 23. Times are Costa Rica time." + (S.owner ? " As organizer, open a match to enter its result." : "");
+  $("days").innerHTML = Object.entries(byDay).map(([day, list]) => `<div class="day"><h3>${esc(day)}</h3>${list.map(fixtureHTML).join("")}</div>`).join("");
+}
+function fixtureHTML(f) {
+  const s = S.stats[f.id], played = s?.played;
+  const th = TEAM[f.home], ta = TEAM[f.away];
+  return `<div class="fixture" id="fx-${f.id}">
+    <div class="fx-row">
+      <div class="fx-time num">${fmtTime(f.at)}</div>
+      <div class="fx-team home">${esc(f.home)} <span class="tdot" style="--team:${th.color}"></span></div>
+      <div class="fx-score num ${played ? "" : "vs"}">${played ? `${+s.hs} – ${+s.as}` : "vs"}${played ? `<div class="fx-badge">Full time</div>` : ""}</div>
+      <div class="fx-team"><span class="tdot" style="--team:${ta.color}"></span> ${esc(f.away)}</div>
+      <div class="fx-act">${S.owner ? `<button class="btn" data-act="edit" data-mid="${f.id}">${played ? "Edit result" : "Enter result"}</button>` : ""}</div>
+    </div>
+    ${S.openEditor === f.id ? editorHTML(f) : ""}
+  </div>`;
+}
+function editorHTML(f) {
+  const s = S.stats[f.id] || {};
+  const side = (team, key) => {
+    const t = TEAM[team], gk = s.gk?.[key] || "";
+    return `<div class="ed-team"><h4>${esc(team)}</h4>
+      <label class="gk"><span class="eyebrow">Goalkeeper (clean sheet)</span>
+        <select id="ed-${f.id}-${key}-gk"><option value="">Not recorded</option>${t.players.map(p => `<option value="${p.id}" ${gk === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
+      <div style="overflow-x:auto"><table><thead><tr><th>Player</th><th>G</th><th>A</th><th>YC</th><th>RC</th></tr></thead><tbody>
+      ${t.players.map(p => { const e = s.ev?.[p.id] || {}; return `<tr><td>${esc(p.name)}</td>${["g","a","y","r"].map(k => `<td><input type="number" min="0" max="${k === "r" ? 1 : k === "y" ? 2 : 20}" id="ed-${f.id}-${p.id}-${k}" value="${+e[k] || 0}" aria-label="${esc(p.name)} ${k}"></td>`).join("")}</tr>`; }).join("")}
+      </tbody></table></div></div>`;
+  };
+  return `<div class="editor">
+    <div class="ed-score"><span class="eyebrow">Final score</span>
+      <input type="number" min="0" id="ed-${f.id}-hs" value="${s.played ? +s.hs : 0}" aria-label="${esc(f.home)} goals">
+      <span>–</span>
+      <input type="number" min="0" id="ed-${f.id}-as" value="${s.played ? +s.as : 0}" aria-label="${esc(f.away)} goals"></div>
+    <div class="ed-teams">${side(f.home, "home")}${side(f.away, "away")}</div>
+    <div class="actions"><button class="btn primary" data-act="ed-save" data-mid="${f.id}">Save result</button>
+      <button class="btn" data-act="ed-cancel">Cancel</button>
+      ${s.played ? `<button class="btn" data-act="ed-clear" data-mid="${f.id}">Clear result</button>` : ""}
+      <span id="ed-msg"></span></div>
+  </div>`;
+}
+async function saveResult(mid) {
+  const f = FIXTURES.find(x => x.id === mid), v = id => Math.max(0, parseInt($(id)?.value, 10) || 0);
+  const ev = {};
+  [...TEAM[f.home].players, ...TEAM[f.away].players].forEach(p => {
+    const e = { g: v(`ed-${mid}-${p.id}-g`), a: v(`ed-${mid}-${p.id}-a`), y: v(`ed-${mid}-${p.id}-y`), r: v(`ed-${mid}-${p.id}-r`) };
+    if (e.g || e.a || e.y || e.r) ev[p.id] = e;
+  });
+  const body = { played: true, hs: v(`ed-${mid}-hs`), as: v(`ed-${mid}-as`), gk: { home: $(`ed-${mid}-home-gk`).value, away: $(`ed-${mid}-away-gk`).value }, ev, updatedAt: new Date().toISOString() };
+  $("ed-msg").textContent = "Saving…";
+  try { await S.db.doc("stats/" + mid).set(body); S.stats[mid] = body; S.openEditor = null; render(); }
+  catch (e) { $("ed-msg").textContent = "Couldn't save: " + (e?.message || e?.code || "error"); $("ed-msg").className = "err"; }
+}
+async function renderTable(totals) {
+  const rows = Object.entries(S.squads).filter(([, s]) => isComplete(s.slots))
+    .map(([id, s]) => ({ id, s, pts: squadPoints(s.slots, totals) }))
+    .sort((a, b) => b.pts - a.pts || (a.s.name || "").localeCompare(b.s.name || ""));
+  const tb = $("lb");
+  if (!rows.length) {
+    tb.innerHTML = `<tr class="empty-row"><td colspan="5">${S.connected ? "No complete squads yet. Build yours on the Squad tab and it will appear here." : "Loading the league…"}</td></tr>`;
+  } else {
+    tb.innerHTML = rows.map((r, i) => `<tr class="${r.id === S.uid ? "mine" : ""}">
+      <td class="rank ${i === 0 && r.pts > 0 ? "top" : ""} num">${i + 1}</td>
+      <td class="pname">${esc(r.s.name || "Unnamed XI")}</td>
+      <td class="tname" data-uid="${esc(r.id)}">${r.id === S.uid ? "You" : "…"}</td>
+      <td class="r">${r.s.locked || pastDeadline() ? `<span class="pill lock">Locked</span>` : `<span class="pill warn">Open</span>`}</td>
+      <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`).join("");
+    if (S.user) {
+      const ps = await S.user.profiles(rows.map(r => r.id));
+      tb.querySelectorAll("[data-uid]").forEach(td => { const id = td.dataset.uid; if (id !== S.uid) td.textContent = ps[id]?.name || "A manager"; });
+    }
+  }
+  const top = PLAYERS.filter(p => totals[p.id].pts !== 0).sort((a, b) => totals[b.id].pts - totals[a.id].pts).slice(0, 12);
+  $("topp").innerHTML = top.length ? top.map(p => `<tr><td><span class="pname">${esc(p.name)}<small>${esc(p.team)}</small></span></td>
+    <td class="r num">${totals[p.id].g}</td><td class="r num">${totals[p.id].a}</td><td class="r num gold">${totals[p.id].pts}</td></tr>`).join("")
+    : `<tr class="empty-row"><td colspan="4">Points appear after the first result on ${fmtDay(DEADLINE)}.</td></tr>`;
+}
+function renderWho() {
+  const w = $("who");
+  let pill;
+  if (!S.connected) pill = `<span class="pill off">Connecting…</span>`;
+  else if (!S.uid) pill = `<span class="pill off">Not signed in</span>`;
+  else if (isLocked()) pill = `<span class="pill lock">Squad locked</span>`;
+  else if (S.dirty) pill = `<span class="pill warn">Unsaved changes</span>`;
+  else if (S.squads[S.uid]) pill = `<span class="pill ok">Squad saved</span>`;
+  else pill = `<span class="pill off">No squad yet</span>`;
+  w.innerHTML = (S.me && S.uid ? `<img src="${esc(S.me.avatarUrl)}" alt=""><span class="name"></span>` : "") + pill;
+  const nm = w.querySelector(".name"); if (nm) nm.textContent = (S.me.name || "Signed in") + (S.owner ? " · Organizer" : "");
+}
+function render() {
+  const totals = playerTotals();
+  renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals);
+}
+
+/* ---------- Views ---------- */
+function showView() {
+  const v = ["squad","matches","table","rules"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "squad";
+  document.querySelectorAll("[data-viewpanel]").forEach(el => el.hidden = el.dataset.viewpanel !== v);
+  document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+}
+window.addEventListener("hashchange", showView);
+
+/* ---------- Events ---------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.tagName === "SELECT") return;
+  const act = b.dataset.act;
+  if (act === "target") { const i = +b.dataset.slot; S.target = S.target === i ? null : i; setMsg(null); render(); if (S.target != null && innerWidth <= 900) $("market").scrollIntoView({ behavior: "smooth", block: "start" }); }
+  else if (act === "untarget") { S.target = null; render(); }
+  else if (act === "remove") removeSlot(+b.dataset.slot);
+  else if (act === "add") addPlayer(b.dataset.pid);
+  else if (act === "save") save(false);
+  else if (act === "lock") { S.confirmLock = true; render(); }
+  else if (act === "lock-cancel") { S.confirmLock = false; render(); }
+  else if (act === "lock-confirm") save(true);
+  else if (act === "edit") { S.openEditor = null; renderMatches(); S.openEditor = b.dataset.mid; $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(f => f.id === S.openEditor)); }
+  else if (act === "ed-cancel") { S.openEditor = null; renderMatches(); }
+  else if (act === "ed-save") saveResult(b.dataset.mid);
+  else if (act === "ed-clear") { const mid = b.dataset.mid; S.db.doc("stats/" + mid).delete().then(() => { delete S.stats[mid]; S.openEditor = null; render(); }); }
+});
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (el.dataset?.act === "pos" && S.owner && S.db) {
+    const pid = el.dataset.pid, val = el.value;
+    if (val) S.positions[pid] = val; else delete S.positions[pid];
+    render();
+    try { await S.db.doc("config/positions").set({ map: { ...S.positions } }); } catch (err) { setMsg("Couldn't save that position."); render(); }
+  }
+});
+$("teamname").addEventListener("input", e => { S.draft.name = e.target.value; S.dirty = true; S.confirmLock = false; persistLocal(); renderWho(); renderSquad(playerTotals()); });
+["f-pos","f-team"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
+$("f-q").addEventListener("input", () => renderMarket(playerTotals()));
+$("f-team").insertAdjacentHTML("beforeend", TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join(""));
+$("mkt-count").textContent = `${PLAYERS.length} players · ${TEAMS.length} WINter teams`;
+$("rules-deadline").textContent = `${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}`;
+
+/* ---------- Boot ---------- */
+(() => { const d = lsGet("wf-draft"); if (d && Array.isArray(d.slots) && d.slots.length === 7) { S.draft.slots = d.slots.map(x => PBYID[x] ? x : null); S.draft.name = d.name || ""; S.dirty = S.draft.slots.some(Boolean); } })();
+showView(); render();
+
+(async () => {
+  const use = n => window.claude?.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+  const [db, user] = await Promise.all([use("db"), use("user")]);
+  S.db = db; S.user = user; S.connected = true;
+  if (user) {
+    S.me = await user.me(); S.uid = S.me.id; S.owner = !!S.me.isOwner;
+    const cw = await user.can("data.write");
+    S.canSave = cw !== false || S.owner || S.me.canEdit;
+  }
+  if (!db) { S.uid = null; showNotice("Saving is unavailable here. Open this page on claude.ai while signed in to save your squad and see the league."); render(); return; }
+  if (!S.uid) { render(); return; }
+  // Signed in: the server copy replaces any browser draft once it loads
+  const local = S.draft;
+  S.draft = { slots: Array(7).fill(null), name: "", locked: false }; S.dirty = false;
+  const slow = setTimeout(() => showNotice("The league data is taking a while to load. Your connection may be offline."), 10000);
+  db.collection("squads").onSnapshot(snap => {
+    clearTimeout(slow); hideNotice();
+    S.squads = {}; snap.docs.forEach(d => S.squads[d.id] = d.data());
+    if (!S.loadedMine && !snap.metadata.fromCache) {
+      S.loadedMine = true;
+      const mine = S.squads[S.uid];
+      if (mine) S.draft = { slots: (mine.slots || []).concat(Array(7)).slice(0, 7).map(x => PBYID[x] ? x : null), name: mine.name || "", locked: !!mine.locked };
+      else if (local.slots.some(Boolean) || local.name) { S.draft = { ...local, locked: false }; S.dirty = true; setMsg("We kept the picks you made before signing in. Save to keep them.", "ok"); }
+    } else if (S.squads[S.uid]?.locked) S.draft.locked = true;
+    render();
+  }, err => showNotice("Couldn't load the league right now. Reload the page to try again."));
+  db.collection("stats").onSnapshot(snap => { S.stats = {}; snap.docs.forEach(d => S.stats[d.id] = d.data()); render(); }, () => {});
+  db.doc("config/positions").onSnapshot(d => { S.positions = (d.exists && d.data().map) || {}; render(); }, () => {});
+})();
+function showNotice(t) { const n = $("notice"); n.textContent = t; n.hidden = false; }
+function hideNotice() { $("notice").hidden = true; }
+</script>
