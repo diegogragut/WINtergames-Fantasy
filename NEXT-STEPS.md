@@ -21,4 +21,4 @@
 
 1. **Optional, recommended**: rotate the Google client secret (Clients → WINter Fantasy → Add secret, paste the new one into Supabase, then disable the old one). The old one was briefly visible during setup.
 
-Squads lock at the first kick-off: **Nov 12, 19:00 Costa Rica time**.
+Squads lock at the first kick-off: **Nov 12, 12:30 Costa Rica time**. Every match runs 12:30–13:10.

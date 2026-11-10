@@ -51,10 +51,10 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.admins where user_id = auth.uid());
 $$;
 
--- First kick-off: Nov 12, 19:00 Costa Rica time. No squad changes after this.
+-- First kick-off: Nov 12, 12:30 Costa Rica time. No squad changes after this.
 create or replace function public.squads_open() returns boolean
 language sql stable as $$
-  select now() < timestamptz '2026-11-12 19:00:00-06';
+  select now() < timestamptz '2026-11-12 12:30:00-06';
 $$;
 
 -- Max 2 players per WINter team, no duplicates. Player ids look like "<team-slug>--<name-slug>".

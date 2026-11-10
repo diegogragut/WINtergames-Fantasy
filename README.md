@@ -15,7 +15,7 @@ Fantasy league for the Winter Games 2026 tournament (Nov 12 – Nov 23).
 | Yellow card | −2 |
 | Red card | −5 |
 
-Only starters score. Squads lock at the first kick-off: **Nov 12, 19:00 (Costa Rica time)**. The database enforces that, the 2-per-team rule, and "a locked squad can't change", so nobody can get around them.
+Only starters score. Squads lock at the first kick-off: **Nov 12, 12:30 (Costa Rica time)**. Every match runs 12:30–13:10. The database enforces that, the 2-per-team rule, and "a locked squad can't change", so nobody can get around them.
 
 ## Files
 
