@@ -246,6 +246,8 @@ td.r, th.r { text-align: right; }
 .fixture { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
 .fx-row { display: grid; grid-template-columns: 64px minmax(0,1fr) 90px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 12px 14px; }
 .fx-time { font-family: var(--display); font-size: 18px; font-weight: 600; color: var(--frost); }
+.fx-group { display: block; font-family: var(--body); font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+@media (max-width: 620px) { .fx-group { display: inline; margin-left: 8px; } }
 .fx-team { font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .fx-team.home { justify-content: flex-end; text-align: right; }
 .fx-score { text-align: center; font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: .04em; }
@@ -536,20 +538,28 @@ const TEAMS = [
   ["Guaraní FC","GUR",["Alberto Jimenez","Alessio Riggioni","Bogis","Diego Quiros","Diego Ruiz","Emiliano Silva","Ignacio Rivera","Juanpi Chavarria","Nono Guzman","Ruben Garita"]],
   ["Pasión FC","PAS",["Campanazo","Franco Hernandez","Garcia","Gaza","Hacha Mango","Matias Quiros","Mosquito","Pipe Bersoza","Roberto Zamora"]],
 ];
+// Group of each WINter team.
+const GROUP = {
+  "Limon 2000": "A", "Garbanzo FC": "A", "La Granja FC": "A",
+  "Zopilotes FC": "B", "Sin Pulmón": "B", "Ayotazo FC": "B",
+  "Guadamuz": "C", "JogoBonito": "C", "Limon Stars": "C",
+  "Pasión FC": "D", "Brasimoreros": "D", "Guaraní FC": "D",
+};
+// Official match order. Kick-off times (Costa Rica time) are placeholders until confirmed.
 const FIXTURES = [
-  ["m01","Ayotazo FC","Sin Pulmón","2026-11-12T19:00"],
+  ["m01","Zopilotes FC","Sin Pulmón","2026-11-12T19:00"],
   ["m02","Pasión FC","Brasimoreros","2026-11-12T20:30"],
-  ["m03","Guadamuz","JogoBonito","2026-11-16T19:00"],
+  ["m03","Ayotazo FC","Zopilotes FC","2026-11-16T19:00"],
   ["m04","Limon 2000","Garbanzo FC","2026-11-16T20:30"],
-  ["m05","Sin Pulmón","Zopilotes FC","2026-11-17T19:00"],
+  ["m05","Guadamuz","JogoBonito","2026-11-17T19:00"],
   ["m06","Garbanzo FC","La Granja FC","2026-11-17T20:30"],
   ["m07","JogoBonito","Limon Stars","2026-11-18T19:00"],
-  ["m08","Zopilotes FC","Ayotazo FC","2026-11-18T20:30"],
+  ["m08","Sin Pulmón","Ayotazo FC","2026-11-18T20:30"],
   ["m09","La Granja FC","Limon 2000","2026-11-19T19:00"],
   ["m10","Brasimoreros","Guaraní FC","2026-11-19T20:30"],
   ["m11","Guaraní FC","Pasión FC","2026-11-23T19:00"],
   ["m12","Limon Stars","Guadamuz","2026-11-23T20:30"],
-].map(([id, home, away, local]) => ({ id, home, away, local, at: new Date(local + ":00-06:00") }));
+].map(([id, home, away, local]) => ({ id, home, away, local, group: GROUP[home], at: new Date(local + ":00-06:00") }));
 const DEADLINE = FIXTURES[0].at;
 const SLOTS = ["GK","DEF","DEF","MID","FWD","BENCH","BENCH"];
 const ROLES = ["GK","DEF","MID","FWD"];
@@ -921,7 +931,7 @@ function fixtureHTML(f) {
   const th = TEAM[f.home], ta = TEAM[f.away];
   return `<div class="fixture" id="fx-${f.id}">
     <div class="fx-row">
-      <div class="fx-time num">${fmtTime(f.at)}</div>
+      <div class="fx-time num">${fmtTime(f.at)}<span class="fx-group">Group ${f.group}</span></div>
       <div class="fx-team home">${esc(f.home)} <span class="tdot" style="--team:${th.color}"></span></div>
       <div class="fx-score num ${played ? "" : "vs"}">${played ? `${+s.hs} – ${+s.as}<div class="fx-badge">Full time</div>` : "vs"}</div>
       <div class="fx-team"><span class="tdot" style="--team:${ta.color}"></span> ${esc(f.away)}</div>
