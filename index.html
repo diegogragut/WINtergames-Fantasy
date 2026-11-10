@@ -1,10 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WINter Fantasy</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Fantasy league for the Winter Games 2026. Sign in with Google, create your team and pick your 7-player squad.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23152049' stroke='%238ed6ff' stroke-width='1.5'/%3E%3Cpath d='M16 6v20M7.3 11l17.4 10M7.3 21l17.4-10' stroke='%238ed6ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: sticky night-blue header, then a two-column split (pitch | transfer market) that stacks under 900px. Single dark look by design. */
+/* Layout: sign-in and team-creation screens centred on a night background; once in, a sticky header over a two-column split (pitch | transfer market) that stacks under 900px. Single dark look by design. */
 :root {
   --ink: #070c22;
   --panel: #0e1636;
@@ -25,17 +31,62 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-html, body { background: var(--ink); color: var(--text); }
-body { font-family: var(--body); font-size: 14px; line-height: 1.45; min-height: 100%; }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+html, body { margin: 0; background: var(--ink); color: var(--text); }
+body { font-family: var(--body); font-size: 14px; line-height: 1.45; min-height: 100vh; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--frost); outline-offset: 2px; }
 .num { font-variant-numeric: tabular-nums; }
 
+/* Gate screens (setup, sign-in, create team) */
+.gate {
+  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  display: grid; place-items: center; padding-block: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(142, 214, 255, .12), transparent 70%),
+    repeating-linear-gradient(180deg, transparent 0 60px, rgba(142, 214, 255, .025) 60px 120px),
+    var(--ink);
+}
+.gate-card { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px 28px; display: grid; gap: 20px; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
+.gate-card.wide { max-width: 520px; }
+.gate-mark { display: flex; align-items: center; gap: 12px; }
+.gate-mark svg { width: 44px; height: 44px; flex: none; }
+.gate-mark b { font-family: var(--display); font-size: 34px; letter-spacing: .02em; font-weight: 700; line-height: 1; }
+.gate-mark b span { color: var(--frost); }
+.gate-mark small { display: block; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.gate h1 { font-family: var(--display); font-size: 28px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+.gate p { margin: 0; color: var(--muted); }
+.gate-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gate-facts div { background: var(--panel-2); border-radius: 10px; padding: 10px; text-align: center; }
+.gate-facts b { display: block; font-family: var(--display); font-size: 26px; color: var(--gold); line-height: 1.1; }
+.gate-facts span { font-size: 11px; color: var(--muted); }
+.google-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; font-weight: 600; font-size: 15px; }
+.google-btn:hover:not(:disabled) { background: #f3f6fb; }
+.google-btn:disabled { opacity: .6; cursor: wait; }
+.google-btn svg { width: 20px; height: 20px; }
+.fine { font-size: 12px; color: var(--muted); }
+.form { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; }
+.field label { font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field input, .field select { width: 100%; background: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 15px; }
+.field input:focus, .field select:focus { border-color: var(--frost); outline: none; box-shadow: 0 0 0 3px rgba(142, 214, 255, .2); }
+.field input[aria-invalid="true"] { border-color: var(--bad); }
+.steps { display: flex; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.steps span { display: flex; align-items: center; gap: 6px; }
+.steps i { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; font-size: 11px; background: var(--panel-2); border: 1px solid var(--line); }
+.steps .on i { background: var(--frost); color: var(--frost-ink); border-color: var(--frost); }
+.steps .on { color: var(--text); }
+.steps .done i { background: var(--good); color: var(--ink); border-color: var(--good); }
+code.k { background: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+
 /* Header */
 header.top {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  position: sticky; top: 0; z-index: 5;
   background: var(--panel); border-bottom: 1px solid var(--line);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -46,21 +97,25 @@ header.top {
 .brand b { font-family: var(--display); font-size: 24px; letter-spacing: .02em; font-weight: 700; line-height: 1; }
 .brand b span { color: var(--frost); }
 .brand small { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
-nav.tabs { display: flex; gap: 4px; }
+nav.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 nav.tabs a {
   font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
   color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 6px;
 }
 nav.tabs a:hover { color: var(--text); }
 nav.tabs a[aria-current="page"] { color: var(--frost-ink); background: var(--frost); }
-.who { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-.who img { width: 28px; height: 28px; border-radius: 50%; }
-.who .name { font-weight: 600; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.who img { width: 30px; height: 30px; border-radius: 50%; background: var(--panel-2); }
+.who .id { line-height: 1.2; min-width: 0; }
+.who .id b { display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who .id small { color: var(--muted); display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 9px; border-radius: 99px; border: 1px solid currentColor; white-space: nowrap; }
 .pill.ok { color: var(--good); }
 .pill.warn { color: var(--gold); }
 .pill.off { color: var(--muted); }
 .pill.lock { color: var(--frost); }
+.ghost { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.ghost:hover { color: var(--text); border-color: var(--frost); }
 
 main {
   max-width: 1280px; margin: 0 auto; padding-block: 20px 48px;
@@ -68,7 +123,6 @@ main {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 .notice { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; color: var(--muted); margin-bottom: 16px; }
-.notice strong { color: var(--text); }
 h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; margin: 0 0 4px; text-wrap: balance; }
 .sub { color: var(--muted); margin: 0 0 16px; }
 .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
@@ -78,8 +132,9 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 @media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
 .card-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.teamname { flex: 1 1 200px; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 8px; font-family: var(--display); font-size: 24px; font-weight: 700; letter-spacing: .02em; }
-.teamname:hover:not(:disabled), .teamname:focus { border-color: var(--line); background: var(--panel-2); }
+.squad-title { flex: 1 1 200px; min-width: 0; }
+.squad-title b { display: block; font-family: var(--display); font-size: 26px; font-weight: 700; letter-spacing: .02em; line-height: 1.1; overflow-wrap: anywhere; }
+.squad-title small { color: var(--muted); }
 .pts-big { text-align: right; }
 .pts-big b { font-family: var(--display); font-size: 34px; color: var(--gold); line-height: 1; display: block; }
 
@@ -104,7 +159,7 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
   font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .04em; color: var(--text);
   transition: transform .15s ease, box-shadow .15s ease;
 }
-.slot.empty .token:hover { transform: scale(1.06); border-color: var(--frost); }
+.slot.empty .token:hover:not(:disabled) { transform: scale(1.06); border-color: var(--frost); }
 .slot.filled .token { border: 2px solid rgba(255,255,255,.85); background: var(--team, #456); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 .slot.target .token { box-shadow: 0 0 0 4px var(--frost); border-color: var(--frost); }
 .slot-name { font-weight: 600; font-size: 13px; line-height: 1.2; max-width: 116px; overflow-wrap: anywhere; background: rgba(7,12,34,.72); padding: 2px 6px; border-radius: 4px; }
@@ -128,6 +183,7 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .btn { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: 8px 14px; font-weight: 600; }
 .btn:hover:not(:disabled) { border-color: var(--frost); }
 .btn.primary { background: var(--frost); color: var(--frost-ink); border-color: var(--frost); }
+.btn.big { padding: 12px 16px; font-size: 15px; border-radius: 10px; }
 .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .deadline { color: var(--muted); font-size: 12px; }
@@ -195,7 +251,7 @@ td.r, th.r { text-align: right; }
 .lb-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 900px) { .lb-grid { grid-template-columns: minmax(0,1fr); } }
 .rank { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--muted); width: 36px; }
-tr:first-child .rank.top { color: var(--gold); }
+.rank.top { color: var(--gold); }
 
 /* Rules */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
@@ -208,17 +264,103 @@ tr:first-child .rank.top { color: var(--gold); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+</head>
+<body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="mark" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="15" fill="#152049" stroke="#8ed6ff" stroke-width="1.5"/>
+    <g stroke="#8ed6ff" stroke-width="2" stroke-linecap="round" fill="none">
+      <path d="M16 6v20M7.3 11l17.4 10M7.3 21l17.4-10"/>
+      <path d="M13 8l3 2.5L19 8M13 24l3-2.5 3 2.5"/>
+    </g>
+  </symbol>
+</svg>
+
+<!-- Loading -->
+<section class="gate" id="screen-loading">
+  <div class="gate-card" style="max-width:320px;text-align:center">
+    <div class="gate-mark" style="justify-content:center"><svg><use href="#mark"/></svg><div><b>WIN<span>ter</span> Fantasy</b></div></div>
+    <p>Loading…</p>
+  </div>
+</section>
+
+<!-- Setup needed (no Supabase keys in config.js) -->
+<section class="gate" id="screen-setup" hidden>
+  <div class="gate-card wide">
+    <div class="gate-mark"><svg><use href="#mark"/></svg><div><b>WIN<span>ter</span> Fantasy</b><small>Setup needed</small></div></div>
+    <h1>Connect the database</h1>
+    <p>This copy of the app doesn't have its Supabase keys yet. Add your project URL and anon key to <code class="k">config.js</code>, then reload. The README walks through every step.</p>
+    <p class="fine" id="setup-detail"></p>
+  </div>
+</section>
+
+<!-- Sign in -->
+<section class="gate" id="screen-login" hidden>
+  <div class="gate-card">
+    <div class="gate-mark"><svg><use href="#mark"/></svg><div><b>WIN<span>ter</span> Fantasy</b><small>Winter Games 2026</small></div></div>
+    <div style="display:grid;gap:8px">
+      <h1>Build your squad. Beat your friends.</h1>
+      <p>Pick 7 players from the 12 WINter teams, score points from every goal, assist and clean sheet, and climb the league table.</p>
+    </div>
+    <div class="gate-facts">
+      <div><b>7</b><span>players</span></div>
+      <div><b>2</b><span>max per team</span></div>
+      <div><b>12</b><span>matches</span></div>
+    </div>
+    <button class="google-btn" id="google-btn" type="button">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.570-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.730 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      <span>Continue with Google</span>
+    </button>
+    <p class="err" id="login-err" hidden></p>
+    <p class="fine">You sign in with Google so your team and squad are saved to your account. The app only uses your name and profile photo.</p>
+  </div>
+</section>
+
+<!-- Create / edit team -->
+<section class="gate" id="screen-team" hidden>
+  <div class="gate-card wide">
+    <div class="gate-mark"><svg><use href="#mark"/></svg><div><b>WIN<span>ter</span> Fantasy</b><small>Winter Games 2026</small></div></div>
+    <div class="steps" id="team-steps">
+      <span class="done"><i>✓</i>Sign in</span>
+      <span class="on"><i>2</i>Create team</span>
+      <span><i>3</i>Pick squad</span>
+    </div>
+    <div style="display:grid;gap:6px">
+      <h1 id="team-title">Create your team</h1>
+      <p id="team-sub">Give your fantasy team a name. Other managers see it on the league table.</p>
+    </div>
+    <form class="form" id="team-form" novalidate>
+      <div class="field">
+        <label for="t-name">Team name</label>
+        <input id="t-name" name="team_name" maxlength="32" placeholder="e.g. Frozen Strikers" autocomplete="off" required>
+        <span class="hint">3 to 32 characters.</span>
+      </div>
+      <div class="field">
+        <label for="t-manager">Manager name</label>
+        <input id="t-manager" name="manager_name" maxlength="40" placeholder="Your name" autocomplete="name" required>
+        <span class="hint">Shown next to your team on the table.</span>
+      </div>
+      <div class="field">
+        <label for="t-fav">Favourite WINter team <span class="fine">(optional)</span></label>
+        <select id="t-fav" name="favorite_team"><option value="">No favourite</option></select>
+      </div>
+      <p class="err" id="team-err" hidden></p>
+      <div class="actions">
+        <button class="btn primary big" type="submit" id="team-submit">Create team and pick squad</button>
+        <button class="btn big" type="button" id="team-cancel" hidden>Cancel</button>
+      </div>
+    </form>
+    <p class="fine">Signed in as <span id="team-email"></span> · <button class="linkbtn" type="button" data-act="signout">Use a different account</button></p>
+  </div>
+</section>
+
+<!-- App -->
+<div id="screen-app" hidden>
 <header class="top">
   <div class="top-inner">
     <a class="brand" href="#squad" aria-label="WINter Fantasy home">
-      <svg viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="15" fill="#152049" stroke="#8ed6ff" stroke-width="1.5"/>
-        <g stroke="#8ed6ff" stroke-width="2" stroke-linecap="round" fill="none">
-          <path d="M16 6v20M7.3 11l17.4 10M7.3 21l17.4-10"/>
-          <path d="M13 8l3 2.5L19 8M13 24l3-2.5 3 2.5"/>
-        </g>
-      </svg>
+      <svg><use href="#mark"/></svg>
       <div><b>WIN<span>ter</span> Fantasy</b><small>Winter Games 2026</small></div>
     </a>
     <nav class="tabs" aria-label="Sections">
@@ -227,7 +369,7 @@ tr:first-child .rank.top { color: var(--gold); }
       <a href="#table" data-view="table">Table</a>
       <a href="#rules" data-view="rules">Rules</a>
     </nav>
-    <div class="who" id="who"><span class="pill off">Connecting…</span></div>
+    <div class="who" id="who"></div>
   </div>
 </header>
 
@@ -238,7 +380,7 @@ tr:first-child .rank.top { color: var(--gold); }
     <div class="split">
       <div class="card" id="pitchcard">
         <div class="card-head">
-          <input id="teamname" class="teamname" maxlength="32" placeholder="Name your fantasy team" aria-label="Fantasy team name">
+          <div class="squad-title"><b id="sq-name"></b><small id="sq-manager"></small></div>
           <div class="pts-big"><span class="eyebrow">Total points</span><b class="num" id="mypts">0</b></div>
         </div>
         <div class="pitch" id="pitch"></div>
@@ -253,7 +395,7 @@ tr:first-child .rank.top { color: var(--gold); }
         <div class="card-head">
           <div>
             <div class="eyebrow">Transfer market</div>
-            <div style="font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em" id="mkt-count">12 WINter teams</div>
+            <div style="font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em" id="mkt-count"></div>
           </div>
         </div>
         <div class="filters">
@@ -276,13 +418,13 @@ tr:first-child .rank.top { color: var(--gold); }
 
   <section id="view-matches" data-viewpanel="matches" hidden>
     <h2 class="sec">Fixtures &amp; results</h2>
-    <p class="sub" id="matches-sub">12 matches, Nov 12 – Nov 23. Times are Costa Rica time.</p>
+    <p class="sub" id="matches-sub"></p>
     <div class="days" id="days"></div>
   </section>
 
   <section id="view-table" data-viewpanel="table" hidden>
     <h2 class="sec">League table</h2>
-    <p class="sub">Every complete 7-player squad. Points come from the 5 starters only.</p>
+    <p class="sub">Every manager in the league. Points come from the 5 starters of a complete squad.</p>
     <div class="lb-grid">
       <div class="card"><div class="tablewrap" style="max-height:none">
         <table><thead><tr><th>#</th><th>Team</th><th>Manager</th><th class="r">Status</th><th class="r">Pts</th></tr></thead><tbody id="lb"></tbody></table>
@@ -295,7 +437,7 @@ tr:first-child .rank.top { color: var(--gold); }
 
   <section id="view-rules" data-viewpanel="rules" hidden>
     <h2 class="sec">How WINter Fantasy works</h2>
-    <p class="sub">One squad per manager for the whole tournament.</p>
+    <p class="sub">One team and one squad per manager for the whole tournament.</p>
     <div class="rules">
       <div class="card">
         <h3>Your squad</h3>
@@ -321,7 +463,7 @@ tr:first-child .rank.top { color: var(--gold); }
       <div class="card">
         <h3>Accounts &amp; saving</h3>
         <ul>
-          <li>You sign in with your Claude account. Your squad is saved to it and follows you to any device.</li>
+          <li>You sign in with Google. Your team and squad are saved to your account and follow you to any device.</li>
           <li>Selection % is the share of complete squads that include a player.</li>
           <li>The league organizer enters each result, scorers, cards and goalkeepers after the final whistle. Points update for everyone at once.</li>
           <li>Positions are set by the organizer. A player without a position can fill any slot.</li>
@@ -330,7 +472,10 @@ tr:first-child .rank.top { color: var(--gold); }
     </div>
   </section>
 </main>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script>
 /* ---------- Tournament data ---------- */
 const TEAMS = [
@@ -367,7 +512,7 @@ const ROLES = ["GK","DEF","MID","FWD"];
 const MAX_PER_TEAM = 2;
 const TEAM_ERR = "Invalid Squad: Maximum 2 players permitted from a single WINter team.";
 
-const slug = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const slug = s => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const HUES = [28, 140, 200, 45, 350, 270, 170, 95, 225, 10, 60, 315];
 const TEAM = {};
 const PLAYERS = [];
@@ -383,13 +528,14 @@ const PBYID = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 
 /* ---------- State ---------- */
 const S = {
-  db: null, user: null, uid: null, me: null, owner: false, canSave: false, connected: false,
-  squads: {},            // uid -> doc
-  stats: {},             // matchId -> doc
+  sb: null, channel: null, user: null, uid: null, profile: null, owner: false,
+  profiles: {},          // uid -> profile row
+  squads: {},            // uid -> squad row
+  stats: {},             // matchId -> { hs, as, gk: {home, away}, ev }
   positions: {},         // pid -> GK|DEF|MID|FWD
-  draft: { slots: Array(7).fill(null), name: "", locked: false },
+  draft: { slots: Array(7).fill(null), locked: false },
   loadedMine: false, dirty: false, saving: false,
-  target: null, msg: null, confirmLock: false, openEditor: null,
+  target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const $ = id => document.getElementById(id);
@@ -397,8 +543,11 @@ const fmtDay = d => d.toLocaleDateString("en-US", { timeZone: "America/Costa_Ric
 const fmtTime = d => d.toLocaleTimeString("en-GB", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
 const pastDeadline = () => Date.now() >= DEADLINE.getTime();
 const isLocked = () => S.draft.locked || pastDeadline();
-const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+function showScreen(name) {
+  ["loading","setup","login","team","app"].forEach(n => $("screen-" + n).hidden = n !== name);
+  window.scrollTo(0, 0);
+}
 
 /* ---------- Scoring ---------- */
 function playerTotals() {
@@ -406,12 +555,12 @@ function playerTotals() {
   PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, y: 0, r: 0, pts: 0 });
   FIXTURES.forEach(f => {
     const s = S.stats[f.id];
-    if (!s || !s.played) return;
+    if (!s) return;
     const hs = +s.hs || 0, as = +s.as || 0;
     const winner = hs > as ? f.home : as > hs ? f.away : null;
     if (winner) TEAM[winner].players.forEach(p => t[p.id].w += 1);
-    if (as === 0 && s.gk?.home && t[s.gk.home]) t[s.gk.home].cs += 1;
-    if (hs === 0 && s.gk?.away && t[s.gk.away]) t[s.gk.away].cs += 1;
+    if (as === 0 && s.gk.home && t[s.gk.home]) t[s.gk.home].cs += 1;
+    if (hs === 0 && s.gk.away && t[s.gk.away]) t[s.gk.away].cs += 1;
     Object.entries(s.ev || {}).forEach(([pid, e]) => {
       if (!t[pid]) return;
       t[pid].g += +e.g || 0; t[pid].a += +e.a || 0; t[pid].y += +e.y || 0; t[pid].r += +e.r || 0;
@@ -435,6 +584,124 @@ function teamCounts(slots) {
 }
 const eligible = (pid, i) => SLOTS[i] === "BENCH" || !S.positions[pid] || S.positions[pid] === SLOTS[i];
 
+/* ---------- Auth & data ---------- */
+async function signInWithGoogle() {
+  const btn = $("google-btn"); btn.disabled = true; $("login-err").hidden = true;
+  const { error } = await S.sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin + location.pathname } });
+  if (error) { btn.disabled = false; $("login-err").textContent = "Google sign-in didn't start: " + error.message; $("login-err").hidden = false; }
+}
+async function signOut() {
+  if (S.channel) { S.sb.removeChannel(S.channel); S.channel = null; }
+  await S.sb.auth.signOut();
+}
+let sessionUid;
+async function handleSession(session) {
+  if (!session) {
+    sessionUid = null;
+    S.user = S.uid = S.profile = null; S.owner = false; S.loadedMine = false; S.dirty = false;
+    S.draft = { slots: Array(7).fill(null), locked: false };
+    $("google-btn").disabled = false;
+    showScreen("login"); return;
+  }
+  if (session.user.id === sessionUid) return; // token refresh, nothing to do
+  sessionUid = session.user.id;
+  S.user = session.user; S.uid = session.user.id;
+  showScreen("loading");
+  const { data, error } = await S.sb.from("profiles").select("*").eq("id", S.uid).maybeSingle();
+  if (error) { showLoadError(error); return; }
+  if (!data) { await loadProfilesOnly(); openTeamForm(false); return; }
+  S.profile = data;
+  await enterApp();
+}
+function showLoadError(error) {
+  showScreen("setup");
+  document.querySelector("#screen-setup h1").textContent = "Couldn't load the league";
+  $("setup-detail").textContent = "The database answered: " + error.message + ". Check that supabase/schema.sql has been run in your Supabase project.";
+}
+async function loadProfilesOnly() {
+  const { data } = await S.sb.from("profiles").select("id, team_name");
+  S.profiles = Object.fromEntries((data || []).map(r => [r.id, r]));
+}
+
+function openTeamForm(editing) {
+  S.editingTeam = editing;
+  const meta = S.user?.user_metadata || {};
+  $("t-name").value = editing ? S.profile.team_name : "";
+  $("t-manager").value = editing ? S.profile.manager_name : (meta.full_name || meta.name || "");
+  $("t-fav").value = editing ? (S.profile.favorite_team || "") : "";
+  $("team-email").textContent = S.user?.email || "";
+  $("team-title").textContent = editing ? "Edit your team" : "Create your team";
+  $("team-sub").textContent = editing ? "Change your team name or manager name. Your squad stays the same." : "Give your fantasy team a name. Other managers see it on the league table.";
+  $("team-submit").textContent = editing ? "Save changes" : "Create team and pick squad";
+  $("team-cancel").hidden = !editing;
+  $("team-steps").hidden = editing;
+  $("team-err").hidden = true;
+  ["t-name","t-manager"].forEach(id => $(id).removeAttribute("aria-invalid"));
+  showScreen("team");
+  $("t-name").focus();
+}
+async function submitTeam(e) {
+  e.preventDefault();
+  const team_name = $("t-name").value.trim(), manager_name = $("t-manager").value.trim(), favorite_team = $("t-fav").value || null;
+  const errs = [];
+  const badName = team_name.length < 3 || team_name.length > 32, badManager = manager_name.length < 2;
+  $("t-name").setAttribute("aria-invalid", badName);
+  $("t-manager").setAttribute("aria-invalid", badManager);
+  if (badName) errs.push("Team name needs 3 to 32 characters.");
+  if (badManager) errs.push("Add your manager name.");
+  if (!badName && Object.values(S.profiles).some(p => p.id !== S.uid && (p.team_name || "").toLowerCase() === team_name.toLowerCase())) {
+    errs.push("Another manager already uses that team name. Pick a different one.");
+  }
+  if (errs.length) { $("team-err").textContent = errs.join(" "); $("team-err").hidden = false; return; }
+  const btn = $("team-submit"); btn.disabled = true;
+  const row = { id: S.uid, team_name, manager_name, favorite_team, updated_at: new Date().toISOString() };
+  const { data, error } = await S.sb.from("profiles").upsert(row).select().single();
+  btn.disabled = false;
+  if (error) { $("team-err").textContent = "Couldn't save your team: " + error.message; $("team-err").hidden = false; return; }
+  S.profile = data; S.profiles[S.uid] = data;
+  if (S.editingTeam) { showScreen("app"); render(); }
+  else { location.hash = "#squad"; await enterApp(); }
+}
+
+async function enterApp() {
+  const { data: adm } = await S.sb.from("admins").select("user_id").eq("user_id", S.uid).maybeSingle();
+  S.owner = !!adm;
+  await loadAll();
+  if (!S.channel) {
+    let t = null;
+    const later = () => { clearTimeout(t); t = setTimeout(loadAll, 400); };
+    S.channel = S.sb.channel("league")
+      .on("postgres_changes", { event: "*", schema: "public", table: "squads" }, later)
+      .on("postgres_changes", { event: "*", schema: "public", table: "match_stats" }, later)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, later)
+      .on("postgres_changes", { event: "*", schema: "public", table: "positions" }, later)
+      .subscribe();
+  }
+  showScreen("app"); showView(); render();
+}
+async function loadAll() {
+  const [pr, sq, st, po] = await Promise.all([
+    S.sb.from("profiles").select("*"),
+    S.sb.from("squads").select("*"),
+    S.sb.from("match_stats").select("*"),
+    S.sb.from("positions").select("*"),
+  ]);
+  const err = pr.error || sq.error || st.error || po.error;
+  if (err) { showNotice("Couldn't refresh the league: " + err.message); return; }
+  hideNotice();
+  S.profiles = Object.fromEntries(pr.data.map(r => [r.id, r]));
+  S.squads = Object.fromEntries(sq.data.map(r => [r.user_id, { ...r, slots: (r.slots || []).concat(Array(7)).slice(0, 7).map(x => PBYID[x] ? x : null) }]));
+  S.stats = Object.fromEntries(st.data.map(r => [r.match_id, { hs: r.home_score, as: r.away_score, gk: { home: r.gk_home || "", away: r.gk_away || "" }, ev: r.events || {} }]));
+  S.positions = Object.fromEntries(po.data.map(r => [r.player_id, r.pos]));
+  if (S.profiles[S.uid]) S.profile = S.profiles[S.uid];
+  const mine = S.squads[S.uid];
+  if (!S.loadedMine || !S.dirty) {
+    if (mine) S.draft = { slots: mine.slots.slice(), locked: !!mine.locked };
+    S.loadedMine = true;
+  } else if (mine?.locked) S.draft.locked = true;
+  if (!$("screen-app").hidden) render();
+}
+
 /* ---------- Squad actions ---------- */
 function setMsg(text, kind = "err") { S.msg = text ? { text, kind } : null; }
 function addPlayer(pid) {
@@ -451,14 +718,13 @@ function addPlayer(pid) {
     render(); return;
   }
   d.slots[slot] = pid; S.target = null; S.dirty = true; setMsg(null); S.confirmLock = false;
-  persistLocal(); render();
+  render();
 }
 function removeSlot(i) {
   if (isLocked()) return;
   S.draft.slots[i] = null; S.dirty = true; S.target = i; setMsg(null); S.confirmLock = false;
-  persistLocal(); render();
+  render();
 }
-function persistLocal() { if (!S.uid) lsSet("wf-draft", S.draft); }
 function validation(slots) {
   const errors = [];
   const n = slots.filter(Boolean).length;
@@ -467,21 +733,25 @@ function validation(slots) {
   return errors;
 }
 async function save(lock = false) {
-  if (!S.db || !S.uid || S.saving) return;
+  if (!S.uid || S.saving) return;
   if (lock && validation(S.draft.slots).length) return;
   S.saving = true; render();
-  const body = { name: S.draft.name.trim().slice(0, 32), slots: S.draft.slots.slice(), locked: lock || S.draft.locked, updatedAt: new Date().toISOString() };
-  try {
-    await S.db.doc("squads/" + S.uid).set(body);
-    S.draft.locked = body.locked; S.dirty = false; S.confirmLock = false;
+  const row = { user_id: S.uid, slots: S.draft.slots.slice(), locked: lock || S.draft.locked };
+  const { error } = await S.sb.from("squads").upsert(row);
+  S.saving = false;
+  if (error) {
+    const m = error.message || "";
+    if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
+    else if (m.includes("row-level security")) setMsg(pastDeadline() ? "Squads locked at kick-off, so changes can't be saved." : "This squad is locked and can't be changed.");
+    else setMsg("Couldn't save: " + m);
+  } else {
+    S.draft.locked = row.locked; S.dirty = false; S.confirmLock = false;
+    S.squads[S.uid] = { ...row };
     setMsg(lock ? "Squad locked. Good luck!" : "Squad saved.", "ok");
-  } catch (e) {
-    if (e?.code === "invalid_argument") { S.canSave = false; setMsg("This account can view the league but not save squads. Ask the organizer to invite you as an Editor."); }
-    else if (e?.code === "unavailable") setMsg("Couldn't reach the server. Try saving again in a moment.");
-    else setMsg("Save failed: " + (e?.message || "unknown error"));
   }
-  S.saving = false; render();
+  render();
 }
+window.addEventListener("beforeunload", e => { if (S.dirty && !isLocked()) { e.preventDefault(); e.returnValue = ""; } });
 
 /* ---------- Rendering ---------- */
 function slotHTML(i, totals) {
@@ -502,28 +772,21 @@ function slotHTML(i, totals) {
   </div>`;
 }
 function renderSquad(totals) {
-  const pitch = $("pitch");
-  pitch.innerHTML = `
+  $("pitch").innerHTML = `
     <div class="prow">${slotHTML(0, totals)}</div>
     <div class="prow">${slotHTML(1, totals)}${slotHTML(2, totals)}</div>
     <div class="prow">${slotHTML(3, totals)}${slotHTML(4, totals)}</div>`;
   $("benchrow").innerHTML = slotHTML(5, totals) + slotHTML(6, totals);
-  const tn = $("teamname");
-  if (document.activeElement !== tn) tn.value = S.draft.name;
-  tn.disabled = isLocked();
+  $("sq-name").textContent = S.profile?.team_name || "";
+  $("sq-manager").textContent = S.profile ? "Manager: " + S.profile.manager_name + (S.profile.favorite_team ? " · Supports " + S.profile.favorite_team : "") : "";
   $("mypts").textContent = squadPoints(S.draft.slots, totals);
 
   const slots = S.draft.slots, n = slots.filter(Boolean).length, tc = teamCounts(slots);
   const chips = Object.entries(tc).sort().map(([t, c]) => `<span class="chip ${c > 2 ? "over" : c === 2 ? "full" : ""}">${esc(TEAM[t].abbr)} ${c}/2</span>`).join("");
   const errs = validation(slots);
-  const locked = isLocked();
-  let actions = "";
-  if (!S.uid) {
-    actions = `<span class="deadline">${S.connected ? "Sign in to claude.ai to save your squad. Your picks are kept in this browser for now." : "Connecting to your account…"}</span>`;
-  } else if (locked) {
+  let actions;
+  if (isLocked()) {
     actions = `<span class="pill lock">${S.draft.locked ? "Squad locked" : "Squads locked at kick-off"}</span>`;
-  } else if (!S.canSave) {
-    actions = `<span class="deadline">View only. Ask the organizer to invite you as an Editor to save a squad.</span>`;
   } else if (S.confirmLock) {
     actions = `<span>Lock this squad for the whole tournament? This can't be undone.</span>
       <button class="btn danger" data-act="lock-confirm" ${S.saving ? "disabled" : ""}>Yes, lock it</button>
@@ -533,10 +796,11 @@ function renderSquad(totals) {
       <button class="btn" data-act="lock" ${errs.length || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : ""}">Lock squad</button>`;
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
-  const errLine = !S.msg && errs.some(e => e === TEAM_ERR) ? `<div class="err">${TEAM_ERR}</div>` : "";
+  const errLine = !S.msg && errs.includes(TEAM_ERR) ? `<div class="err">${TEAM_ERR}</div>` : "";
+  const hint = n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
   $("status").innerHTML = `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
-    ${msg}${errLine}
+    ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
     <div class="deadline">${pastDeadline() ? "The tournament is under way. Squads are final." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`}</div>
     <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`;
@@ -549,7 +813,7 @@ function stateJSON(totals) {
   };
   const errs = validation(S.draft.slots);
   return {
-    user_id: S.uid, username: S.me?.name || null, squad_name: S.draft.name || null, squad_locked: isLocked(),
+    user_id: S.uid, username: S.profile?.manager_name || null, team_name: S.profile?.team_name || null, squad_locked: isLocked(),
     squad: { starters: [0,1,2,3,4].map(i => row(i, true)).filter(Boolean), bench: [5,6].map(i => row(i, false)).filter(Boolean) },
     validation_status: { total_players: S.draft.slots.filter(Boolean).length, max_per_team_compliant: !errs.includes(TEAM_ERR), errors: errs },
     total_points: squadPoints(S.draft.slots, totals),
@@ -601,13 +865,13 @@ function renderMatches() {
   $("days").innerHTML = Object.entries(byDay).map(([day, list]) => `<div class="day"><h3>${esc(day)}</h3>${list.map(fixtureHTML).join("")}</div>`).join("");
 }
 function fixtureHTML(f) {
-  const s = S.stats[f.id], played = s?.played;
+  const s = S.stats[f.id], played = !!s;
   const th = TEAM[f.home], ta = TEAM[f.away];
   return `<div class="fixture" id="fx-${f.id}">
     <div class="fx-row">
       <div class="fx-time num">${fmtTime(f.at)}</div>
       <div class="fx-team home">${esc(f.home)} <span class="tdot" style="--team:${th.color}"></span></div>
-      <div class="fx-score num ${played ? "" : "vs"}">${played ? `${+s.hs} – ${+s.as}` : "vs"}${played ? `<div class="fx-badge">Full time</div>` : ""}</div>
+      <div class="fx-score num ${played ? "" : "vs"}">${played ? `${+s.hs} – ${+s.as}<div class="fx-badge">Full time</div>` : "vs"}</div>
       <div class="fx-team"><span class="tdot" style="--team:${ta.color}"></span> ${esc(f.away)}</div>
       <div class="fx-act">${S.owner ? `<button class="btn" data-act="edit" data-mid="${f.id}">${played ? "Edit result" : "Enter result"}</button>` : ""}</div>
     </div>
@@ -615,59 +879,63 @@ function fixtureHTML(f) {
   </div>`;
 }
 function editorHTML(f) {
-  const s = S.stats[f.id] || {};
+  const s = S.stats[f.id] || { gk: {}, ev: {} };
   const side = (team, key) => {
-    const t = TEAM[team], gk = s.gk?.[key] || "";
+    const t = TEAM[team], gk = s.gk[key] || "";
     return `<div class="ed-team"><h4>${esc(team)}</h4>
       <label class="gk"><span class="eyebrow">Goalkeeper (clean sheet)</span>
         <select id="ed-${f.id}-${key}-gk"><option value="">Not recorded</option>${t.players.map(p => `<option value="${p.id}" ${gk === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}</select></label>
       <div style="overflow-x:auto"><table><thead><tr><th>Player</th><th>G</th><th>A</th><th>YC</th><th>RC</th></tr></thead><tbody>
-      ${t.players.map(p => { const e = s.ev?.[p.id] || {}; return `<tr><td>${esc(p.name)}</td>${["g","a","y","r"].map(k => `<td><input type="number" min="0" max="${k === "r" ? 1 : k === "y" ? 2 : 20}" id="ed-${f.id}-${p.id}-${k}" value="${+e[k] || 0}" aria-label="${esc(p.name)} ${k}"></td>`).join("")}</tr>`; }).join("")}
+      ${t.players.map(p => { const e = s.ev[p.id] || {}; return `<tr><td>${esc(p.name)}</td>${["g","a","y","r"].map(k => `<td><input type="number" min="0" max="${k === "r" ? 1 : k === "y" ? 2 : 20}" id="ed-${f.id}-${p.id}-${k}" value="${+e[k] || 0}" aria-label="${esc(p.name)} ${k}"></td>`).join("")}</tr>`; }).join("")}
       </tbody></table></div></div>`;
   };
+  const played = !!S.stats[f.id];
   return `<div class="editor">
     <div class="ed-score"><span class="eyebrow">Final score</span>
-      <input type="number" min="0" id="ed-${f.id}-hs" value="${s.played ? +s.hs : 0}" aria-label="${esc(f.home)} goals">
+      <input type="number" min="0" id="ed-${f.id}-hs" value="${played ? +s.hs : 0}" aria-label="${esc(f.home)} goals">
       <span>–</span>
-      <input type="number" min="0" id="ed-${f.id}-as" value="${s.played ? +s.as : 0}" aria-label="${esc(f.away)} goals"></div>
+      <input type="number" min="0" id="ed-${f.id}-as" value="${played ? +s.as : 0}" aria-label="${esc(f.away)} goals"></div>
     <div class="ed-teams">${side(f.home, "home")}${side(f.away, "away")}</div>
     <div class="actions"><button class="btn primary" data-act="ed-save" data-mid="${f.id}">Save result</button>
       <button class="btn" data-act="ed-cancel">Cancel</button>
-      ${s.played ? `<button class="btn" data-act="ed-clear" data-mid="${f.id}">Clear result</button>` : ""}
+      ${played ? `<button class="btn" data-act="ed-clear" data-mid="${f.id}">Clear result</button>` : ""}
       <span id="ed-msg"></span></div>
   </div>`;
 }
 async function saveResult(mid) {
   const f = FIXTURES.find(x => x.id === mid), v = id => Math.max(0, parseInt($(id)?.value, 10) || 0);
-  const ev = {};
+  const events = {};
   [...TEAM[f.home].players, ...TEAM[f.away].players].forEach(p => {
     const e = { g: v(`ed-${mid}-${p.id}-g`), a: v(`ed-${mid}-${p.id}-a`), y: v(`ed-${mid}-${p.id}-y`), r: v(`ed-${mid}-${p.id}-r`) };
-    if (e.g || e.a || e.y || e.r) ev[p.id] = e;
+    if (e.g || e.a || e.y || e.r) events[p.id] = e;
   });
-  const body = { played: true, hs: v(`ed-${mid}-hs`), as: v(`ed-${mid}-as`), gk: { home: $(`ed-${mid}-home-gk`).value, away: $(`ed-${mid}-away-gk`).value }, ev, updatedAt: new Date().toISOString() };
-  $("ed-msg").textContent = "Saving…";
-  try { await S.db.doc("stats/" + mid).set(body); S.stats[mid] = body; S.openEditor = null; render(); }
-  catch (e) { $("ed-msg").textContent = "Couldn't save: " + (e?.message || e?.code || "error"); $("ed-msg").className = "err"; }
+  const row = { match_id: mid, home_score: v(`ed-${mid}-hs`), away_score: v(`ed-${mid}-as`), gk_home: $(`ed-${mid}-home-gk`).value || null, gk_away: $(`ed-${mid}-away-gk`).value || null, events, updated_at: new Date().toISOString() };
+  $("ed-msg").textContent = "Saving…"; $("ed-msg").className = "";
+  const { error } = await S.sb.from("match_stats").upsert(row);
+  if (error) { $("ed-msg").textContent = "Couldn't save: " + error.message; $("ed-msg").className = "err"; return; }
+  S.stats[mid] = { hs: row.home_score, as: row.away_score, gk: { home: row.gk_home || "", away: row.gk_away || "" }, ev: events };
+  S.openEditor = null; render();
 }
-async function renderTable(totals) {
-  const rows = Object.entries(S.squads).filter(([, s]) => isComplete(s.slots))
-    .map(([id, s]) => ({ id, s, pts: squadPoints(s.slots, totals) }))
-    .sort((a, b) => b.pts - a.pts || (a.s.name || "").localeCompare(b.s.name || ""));
-  const tb = $("lb");
-  if (!rows.length) {
-    tb.innerHTML = `<tr class="empty-row"><td colspan="5">${S.connected ? "No complete squads yet. Build yours on the Squad tab and it will appear here." : "Loading the league…"}</td></tr>`;
-  } else {
-    tb.innerHTML = rows.map((r, i) => `<tr class="${r.id === S.uid ? "mine" : ""}">
+async function clearResult(mid) {
+  const { error } = await S.sb.from("match_stats").delete().eq("match_id", mid);
+  if (error) { $("ed-msg").textContent = "Couldn't clear: " + error.message; $("ed-msg").className = "err"; return; }
+  delete S.stats[mid]; S.openEditor = null; render();
+}
+function renderTable(totals) {
+  const rows = Object.values(S.profiles).filter(p => p.manager_name).map(p => {
+    const sq = S.squads[p.id], slots = sq?.slots || [];
+    const n = slots.filter(Boolean).length;
+    return { p, sq, n, pts: squadPoints(slots, totals) };
+  }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
+  $("lb").innerHTML = rows.length ? rows.map((r, i) => {
+    const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || pastDeadline()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
+    return `<tr class="${r.p.id === S.uid ? "mine" : ""}">
       <td class="rank ${i === 0 && r.pts > 0 ? "top" : ""} num">${i + 1}</td>
-      <td class="pname">${esc(r.s.name || "Unnamed XI")}</td>
-      <td class="tname" data-uid="${esc(r.id)}">${r.id === S.uid ? "You" : "…"}</td>
-      <td class="r">${r.s.locked || pastDeadline() ? `<span class="pill lock">Locked</span>` : `<span class="pill warn">Open</span>`}</td>
-      <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`).join("");
-    if (S.user) {
-      const ps = await S.user.profiles(rows.map(r => r.id));
-      tb.querySelectorAll("[data-uid]").forEach(td => { const id = td.dataset.uid; if (id !== S.uid) td.textContent = ps[id]?.name || "A manager"; });
-    }
-  }
+      <td class="pname">${esc(r.p.team_name)}${r.p.favorite_team ? `<small>Supports ${esc(r.p.favorite_team)}</small>` : ""}</td>
+      <td class="tname">${r.p.id === S.uid ? "You" : esc(r.p.manager_name)}</td>
+      <td class="r">${status}</td>
+      <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`;
+  }).join("") : `<tr class="empty-row"><td colspan="5">No teams yet.</td></tr>`;
   const top = PLAYERS.filter(p => totals[p.id].pts !== 0).sort((a, b) => totals[b.id].pts - totals[a.id].pts).slice(0, 12);
   $("topp").innerHTML = top.length ? top.map(p => `<tr><td><span class="pname">${esc(p.name)}<small>${esc(p.team)}</small></span></td>
     <td class="r num">${totals[p.id].g}</td><td class="r num">${totals[p.id].a}</td><td class="r num gold">${totals[p.id].pts}</td></tr>`).join("")
@@ -676,16 +944,20 @@ async function renderTable(totals) {
 function renderWho() {
   const w = $("who");
   let pill;
-  if (!S.connected) pill = `<span class="pill off">Connecting…</span>`;
-  else if (!S.uid) pill = `<span class="pill off">Not signed in</span>`;
-  else if (isLocked()) pill = `<span class="pill lock">Squad locked</span>`;
+  if (isLocked()) pill = `<span class="pill lock">Squad locked</span>`;
   else if (S.dirty) pill = `<span class="pill warn">Unsaved changes</span>`;
   else if (S.squads[S.uid]) pill = `<span class="pill ok">Squad saved</span>`;
   else pill = `<span class="pill off">No squad yet</span>`;
-  w.innerHTML = (S.me && S.uid ? `<img src="${esc(S.me.avatarUrl)}" alt=""><span class="name"></span>` : "") + pill;
-  const nm = w.querySelector(".name"); if (nm) nm.textContent = (S.me.name || "Signed in") + (S.owner ? " · Organizer" : "");
+  const avatar = S.user?.user_metadata?.avatar_url;
+  w.innerHTML = `${avatar ? `<img src="${esc(avatar)}" alt="" referrerpolicy="no-referrer">` : ""}
+    <div class="id"><b></b><small></small></div>${pill}
+    <button class="ghost" data-act="edit-team">Edit team</button>
+    <button class="ghost" data-act="signout">Sign out</button>`;
+  w.querySelector(".id b").textContent = S.profile?.team_name || "";
+  w.querySelector(".id small").textContent = (S.profile?.manager_name || "") + (S.owner ? " · Organizer" : "");
 }
 function render() {
+  if (!S.profile) return;
   const totals = playerTotals();
   renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals);
 }
@@ -697,6 +969,8 @@ function showView() {
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
 }
 window.addEventListener("hashchange", showView);
+function showNotice(t) { const n = $("notice"); n.textContent = t; n.hidden = false; }
+function hideNotice() { $("notice").hidden = true; }
 
 /* ---------- Events ---------- */
 document.addEventListener("click", e => {
@@ -713,57 +987,47 @@ document.addEventListener("click", e => {
   else if (act === "edit") { S.openEditor = null; renderMatches(); S.openEditor = b.dataset.mid; $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(f => f.id === S.openEditor)); }
   else if (act === "ed-cancel") { S.openEditor = null; renderMatches(); }
   else if (act === "ed-save") saveResult(b.dataset.mid);
-  else if (act === "ed-clear") { const mid = b.dataset.mid; S.db.doc("stats/" + mid).delete().then(() => { delete S.stats[mid]; S.openEditor = null; render(); }); }
+  else if (act === "ed-clear") clearResult(b.dataset.mid);
+  else if (act === "edit-team") openTeamForm(true);
+  else if (act === "signout") signOut();
 });
 document.addEventListener("change", async e => {
   const el = e.target;
-  if (el.dataset?.act === "pos" && S.owner && S.db) {
+  if (el.dataset?.act === "pos" && S.owner) {
     const pid = el.dataset.pid, val = el.value;
     if (val) S.positions[pid] = val; else delete S.positions[pid];
     render();
-    try { await S.db.doc("config/positions").set({ map: { ...S.positions } }); } catch (err) { setMsg("Couldn't save that position."); render(); }
+    const { error } = val
+      ? await S.sb.from("positions").upsert({ player_id: pid, pos: val })
+      : await S.sb.from("positions").delete().eq("player_id", pid);
+    if (error) { setMsg("Couldn't save that position: " + error.message); render(); }
   }
 });
-$("teamname").addEventListener("input", e => { S.draft.name = e.target.value; S.dirty = true; S.confirmLock = false; persistLocal(); renderWho(); renderSquad(playerTotals()); });
+$("google-btn").addEventListener("click", signInWithGoogle);
+$("team-form").addEventListener("submit", submitTeam);
+$("team-cancel").addEventListener("click", () => { showScreen("app"); render(); });
 ["f-pos","f-team"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
 $("f-q").addEventListener("input", () => renderMarket(playerTotals()));
-$("f-team").insertAdjacentHTML("beforeend", TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join(""));
+const teamOptions = TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+$("f-team").insertAdjacentHTML("beforeend", teamOptions);
+$("t-fav").insertAdjacentHTML("beforeend", teamOptions);
 $("mkt-count").textContent = `${PLAYERS.length} players · ${TEAMS.length} WINter teams`;
 $("rules-deadline").textContent = `${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}`;
 
 /* ---------- Boot ---------- */
-(() => { const d = lsGet("wf-draft"); if (d && Array.isArray(d.slots) && d.slots.length === 7) { S.draft.slots = d.slots.map(x => PBYID[x] ? x : null); S.draft.name = d.name || ""; S.dirty = S.draft.slots.some(Boolean); } })();
-showView(); render();
-
 (async () => {
-  const use = n => window.claude?.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
-  const [db, user] = await Promise.all([use("db"), use("user")]);
-  S.db = db; S.user = user; S.connected = true;
-  if (user) {
-    S.me = await user.me(); S.uid = S.me.id; S.owner = !!S.me.isOwner;
-    const cw = await user.can("data.write");
-    S.canSave = cw !== false || S.owner || S.me.canEdit;
+  const cfg = window.WINTER_CONFIG || {};
+  if (!window.supabase?.createClient) {
+    showScreen("setup"); $("setup-detail").textContent = "The Supabase library didn't load. Check your internet connection and reload."; return;
   }
-  if (!db) { S.uid = null; showNotice("Saving is unavailable here. Open this page on claude.ai while signed in to save your squad and see the league."); render(); return; }
-  if (!S.uid) { render(); return; }
-  // Signed in: the server copy replaces any browser draft once it loads
-  const local = S.draft;
-  S.draft = { slots: Array(7).fill(null), name: "", locked: false }; S.dirty = false;
-  const slow = setTimeout(() => showNotice("The league data is taking a while to load. Your connection may be offline."), 10000);
-  db.collection("squads").onSnapshot(snap => {
-    clearTimeout(slow); hideNotice();
-    S.squads = {}; snap.docs.forEach(d => S.squads[d.id] = d.data());
-    if (!S.loadedMine && !snap.metadata.fromCache) {
-      S.loadedMine = true;
-      const mine = S.squads[S.uid];
-      if (mine) S.draft = { slots: (mine.slots || []).concat(Array(7)).slice(0, 7).map(x => PBYID[x] ? x : null), name: mine.name || "", locked: !!mine.locked };
-      else if (local.slots.some(Boolean) || local.name) { S.draft = { ...local, locked: false }; S.dirty = true; setMsg("We kept the picks you made before signing in. Save to keep them.", "ok"); }
-    } else if (S.squads[S.uid]?.locked) S.draft.locked = true;
-    render();
-  }, err => showNotice("Couldn't load the league right now. Reload the page to try again."));
-  db.collection("stats").onSnapshot(snap => { S.stats = {}; snap.docs.forEach(d => S.stats[d.id] = d.data()); render(); }, () => {});
-  db.doc("config/positions").onSnapshot(d => { S.positions = (d.exists && d.data().map) || {}; render(); }, () => {});
+  if (!cfg.supabaseUrl || !cfg.supabaseAnonKey || cfg.supabaseUrl.includes("YOUR-")) {
+    showScreen("setup"); $("setup-detail").textContent = "config.js still has the placeholder values."; return;
+  }
+  S.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  S.sb.auth.onAuthStateChange((_event, session) => { setTimeout(() => handleSession(session), 0); });
+  const { data } = await S.sb.auth.getSession();
+  await handleSession(data.session);
 })();
-function showNotice(t) { const n = $("notice"); n.textContent = t; n.hidden = false; }
-function hideNotice() { $("notice").hidden = true; }
 </script>
+</body>
+</html>
