@@ -131,6 +131,17 @@ drop policy if exists "admins write positions" on public.positions;
 create policy "admins write positions" on public.positions for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
+-- ---------- API access ----------
+-- Let signed-in users reach these tables through the API (the policies above still decide each row).
+grant usage on schema public to anon, authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update on public.squads to authenticated;
+grant select, insert, update, delete on public.match_stats to authenticated;
+grant select, insert, update, delete on public.positions to authenticated;
+grant select on public.admins to authenticated;
+grant execute on function public.is_admin() to authenticated;
+grant execute on function public.squads_open() to authenticated;
+
 -- ---------- Live updates ----------
 -- Lets the app refresh the table and points as soon as anyone saves.
 do $$
