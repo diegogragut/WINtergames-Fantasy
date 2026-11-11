@@ -169,6 +169,14 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .role { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--frost); }
 .remove { position: absolute; top: -4px; right: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--bad); color: #fff; font-weight: 700; line-height: 1; display: grid; place-items: center; }
 .remove:hover { filter: brightness(1.15); }
+.capbadge { position: absolute; top: -4px; left: 18px; width: 22px; height: 22px; border-radius: 50%; border: 1px dashed rgba(233, 238, 255, .5); background: rgba(7, 12, 34, .75); color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0; }
+.capbadge:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.capbadge.on { border: 2px solid var(--ink); background: var(--gold); color: var(--ink); box-shadow: 0 0 0 2px var(--gold); }
+.capbadge:disabled { cursor: default; }
+.capbadge.static { position: static; flex: none; }
+.slot.captain .token { box-shadow: 0 0 0 3px var(--gold), 0 4px 14px rgba(0,0,0,.35); }
+.capline { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.capline.muted { color: var(--muted); }
 
 .status { border-top: 1px solid var(--line); padding: 14px 16px; display: grid; gap: 10px; }
 .status-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
@@ -563,6 +571,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
         <ul>
           <li>Pick exactly <strong>7 players</strong>: 5 starters and 2 bench, with a budget of <strong>100M</strong>.</li>
           <li>Starters: 1 GK, 2 CB and 2 ST. The bench takes any position. Only starters score; the bench earns 0.</li>
+          <li><strong>Captain:</strong> give the armband to one of your players. His points count double. A captain on the bench scores 0, like any bench player.</li>
           <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Lock early if you want it final.</li>
@@ -611,7 +620,7 @@ const TEAMS = [
   ["Guadamuz","GDZ",["Emilio Artavia","Felipe Ferraro","Jupa Popi","Luis Carlos","Oscar Saborio","Raymond Semaan","Sebastian Solera"]],
   ["JogoBonito","JOG",["Andres Rucavado","Ian Goldberg","Ignacio Child","Javier Sanabria","Luciano Soto","Randy Xirinachs"]],
   ["Limon Stars","LST",["Andres Soto","Toto Jay|Antonio Jimenez","Emilio Atmella","Eric Brenes","Luciano Segnini","Patrick van der Laat"]],
-  ["Brasimoreros","BRA",["Agustin Pacheco|Captain","Eduardo Odio","Julian Segura","Marco Olivo","Martin Castro","Stefan Matzen","Tomas Quijano"]],
+  ["Brasimoreros","BRA",["Agustin Pacheco|Brasimoreros captain","Eduardo Odio","Julian Segura","Marco Olivo","Martin Castro","Stefan Matzen","Tomas Quijano"]],
   ["Guaraní FC","GUR",["Alberto Jimenez","Alessio Riggioni","Bogis","Diego Quiros","Diego Ruiz","Emiliano Silva","Ignacio Rivera","Juanpi Chavarria","Nono Guzman","Ruben Garita"]],
   ["Pasión FC","PAS",["Campanazo","Franco Hernandez","Garcia","Gaza","Hacha Mango","Matias Quiros","Mosquito","Pipe Bersoza","Roberto Zamora"]],
 ];
@@ -786,7 +795,7 @@ const S = {
   positions: {},         // pid -> GK|DEF|MID|FWD
   adjust: [],            // organizer point adjustments: { id, player_id, points, reason, created_at }
   adjPid: null,          // player whose adjustments panel is open
-  draft: { slots: Array(7).fill(null), locked: false },
+  draft: { slots: Array(7).fill(null), locked: false, captain: null },
   loadedMine: false, dirty: false, saving: false,
   target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
 };
@@ -834,7 +843,12 @@ function playerTotals() {
   return t;
 }
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
-const squadPoints = (slots, totals) => isComplete(slots) ? slots.slice(0, 5).reduce((n, pid) => n + (totals[pid]?.pts || 0), 0) : 0;
+const squadPoints = (slots, totals, captain) => {
+  if (!isComplete(slots)) return 0;
+  const starters = slots.slice(0, 5);
+  const base = starters.reduce((n, pid) => n + (totals[pid]?.pts || 0), 0);
+  return base + (captain && starters.includes(captain) ? (totals[captain]?.pts || 0) : 0); // captain = 2x
+};
 const isApproved = uid => S.profiles[uid]?.status === "approved";
 function selectionPct() {
   const full = Object.entries(S.squads).filter(([uid, s]) => isApproved(uid) && isComplete(s.slots)).map(([, s]) => s);
@@ -963,7 +977,7 @@ async function handleSession(session) {
   if (!session) {
     sessionUid = null;
     S.user = S.uid = S.profile = null; S.owner = false; S.loadedMine = false; S.dirty = false;
-    S.draft = { slots: Array(7).fill(null), locked: false };
+    S.draft = { slots: Array(7).fill(null), locked: false, captain: null };
     $("google-btn").disabled = false;
     showScreen("login"); return;
   }
@@ -1069,7 +1083,7 @@ async function loadAll() {
   if (S.owner) loadMembers();
   const mine = S.squads[S.uid];
   if (!S.loadedMine || !S.dirty) {
-    if (mine) S.draft = { slots: mine.slots.slice(), locked: !!mine.locked };
+    if (mine) S.draft = { slots: mine.slots.slice(), locked: !!mine.locked, captain: mine.slots.includes(mine.captain) ? mine.captain : null };
     S.loadedMine = true;
   } else if (mine?.locked) S.draft.locked = true;
   if (!$("screen-app").hidden) render();
@@ -1098,6 +1112,7 @@ function addPlayer(pid) {
 }
 function removeSlot(i) {
   if (isLocked()) return;
+  if (S.draft.slots[i] === S.draft.captain) S.draft.captain = null;
   S.draft.slots[i] = null; S.dirty = true; S.target = i; setMsg(null); S.confirmLock = false;
   render();
 }
@@ -1119,7 +1134,7 @@ async function save(lock = false) {
   if (!S.uid || S.saving) return;
   if (lock && validation(S.draft.slots).length) return;
   S.saving = true; render();
-  const row = { user_id: S.uid, slots: S.draft.slots.slice(), locked: lock || S.draft.locked };
+  const row = { user_id: S.uid, slots: S.draft.slots.slice(), captain: S.draft.slots.includes(S.draft.captain) ? S.draft.captain : null, locked: lock || S.draft.locked };
   const { error } = await S.sb.from("squads").upsert(row);
   S.saving = false;
   if (error) {
@@ -1147,11 +1162,14 @@ function slotHTML(i, totals) {
       <button class="token" data-act="target" data-slot="${i}" ${isLocked() ? "disabled" : ""} aria-label="Choose a player for the ${label} slot">${label}</button>
       <div class="slot-name">${S.target === i ? "Pick from market" : "Open"}</div></div>`;
   }
-  const p = PBYID[pid], t = TEAM[p.team];
-  return `<div class="slot filled${tgt}" style="--team:${t.color}">
-    <div class="token" aria-hidden="true">${t.abbr}</div>
+  const p = PBYID[pid], t = TEAM[p.team], isCap = S.draft.captain === pid;
+  const capCtl = isCap
+    ? `<button class="capbadge on" ${isLocked() ? "disabled" : ""} data-act="captain" data-pid="${pid}" title="Captain: points count double${isLocked() ? "" : ". Click to remove the armband"}" aria-label="${esc(p.name)} is captain${isLocked() ? "" : ". Remove armband"}">C</button>`
+    : isLocked() ? "" : `<button class="capbadge" data-act="captain" data-pid="${pid}" title="Make ${esc(p.name)} captain (2x points)" aria-label="Make ${esc(p.name)} captain">C</button>`;
+  return `<div class="slot filled${tgt}${isCap ? " captain" : ""}" style="--team:${t.color}">
+    <div class="token" aria-hidden="true">${t.abbr}</div>${capCtl}
     <div class="slot-name">${esc(p.name)}</div>
-    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${totals[pid].pts} pts</span>` : ""}</div>
+    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${isCap ? totals[pid].pts * 2 + " pts (2x)" : totals[pid].pts + " pts"}</span>` : ""}</div>
     ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
   </div>`;
 }
@@ -1163,7 +1181,7 @@ function renderSquad(totals) {
   $("benchrow").innerHTML = slotHTML(5, totals) + slotHTML(6, totals);
   $("sq-name").textContent = S.profile?.team_name || "";
   $("sq-manager").textContent = S.profile ? "Manager: " + S.profile.manager_name + (S.profile.favorite_team ? " · Supports " + S.profile.favorite_team : "") : "";
-  $("mypts").textContent = squadPoints(S.draft.slots, totals);
+  $("mypts").textContent = squadPoints(S.draft.slots, totals, S.draft.captain);
 
   const slots = S.draft.slots, n = slots.filter(Boolean).length, tc = teamCounts(slots);
   const chips = Object.entries(tc).sort().map(([t, c]) => `<span class="chip ${c > 2 ? "over" : c === 2 ? "full" : ""}">${esc(TEAM[t].abbr)} ${c}/2</span>`).join("");
@@ -1181,6 +1199,11 @@ function renderSquad(totals) {
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
   const errLine = !S.msg ? errs.filter(e => !e.startsWith("Squad incomplete")).map(e => `<div class="err">${esc(e)}</div>`).join("") : "";
+  if (S.draft.captain && !slots.includes(S.draft.captain)) S.draft.captain = null;
+  const cap = S.draft.captain ? PBYID[S.draft.captain] : null, capOnBench = cap && S.draft.slots.indexOf(S.draft.captain) > 4;
+  const captainLine = cap
+    ? `<div class="capline"><span class="capbadge on static">C</span><span>Captain: <b>${esc(cap.name)}</b>. His points count double.${capOnBench ? ' <span class="err">He is on the bench, so he scores 0. Pick a starter.</span>' : ""}</span></div>`
+    : n ? `<div class="capline muted"><span class="capbadge static">C</span><span>${isLocked() ? "No captain was picked." : "Pick a captain: tap the <b>C</b> on any of your players. His points count double."}</span></div>` : "";
   const cost = squadCost(slots), left = BUDGET - cost, pct = Math.min(100, cost / BUDGET * 100);
   const budget = `<div class="budget ${left < 0 ? "over" : ""}">
       <div class="budget-top"><span><b class="num">${fmtM(cost)}</b> of ${fmtM(BUDGET)} spent</span><span class="num">${left >= 0 ? fmtM(left) + " left" : fmtM(-left) + " over"}</span></div>
@@ -1190,6 +1213,7 @@ function renderSquad(totals) {
   $("status").innerHTML = `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
     ${budget}
+    ${captainLine}
     ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
     <div class="deadline">${pastDeadline() ? "The tournament is under way. Squads are final." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`}</div>
@@ -1207,7 +1231,8 @@ function stateJSON(totals) {
     squad: { starters: [0,1,2,3,4].map(i => row(i, true)).filter(Boolean), bench: [5,6].map(i => row(i, false)).filter(Boolean) },
     validation_status: { total_players: S.draft.slots.filter(Boolean).length, max_per_team_compliant: !errs.includes(TEAM_ERR), errors: errs },
     budget_m: BUDGET, spent_m: squadCost(S.draft.slots),
-    total_points: squadPoints(S.draft.slots, totals),
+    captain: S.draft.captain ? PBYID[S.draft.captain]?.name : null,
+    total_points: squadPoints(S.draft.slots, totals, S.draft.captain),
   };
 }
 function renderMarket(totals) {
@@ -1320,7 +1345,7 @@ function renderTable(totals) {
   const rows = Object.values(S.profiles).filter(p => p.manager_name && p.status === "approved").map(p => {
     const sq = S.squads[p.id], slots = sq?.slots || [];
     const n = slots.filter(Boolean).length;
-    return { p, sq, n, pts: squadPoints(slots, totals) };
+    return { p, sq, n, pts: squadPoints(slots, totals, sq?.captain) };
   }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
   $("lb").innerHTML = rows.length ? rows.map((r, i) => {
     const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || pastDeadline()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
@@ -1424,6 +1449,7 @@ document.addEventListener("click", e => {
   if (act === "target") { const i = +b.dataset.slot; S.target = S.target === i ? null : i; setMsg(null); render(); if (S.target != null && innerWidth <= 900) $("market").scrollIntoView({ behavior: "smooth", block: "start" }); }
   else if (act === "untarget") { S.target = null; render(); }
   else if (act === "remove") removeSlot(+b.dataset.slot);
+  else if (act === "captain" && !isLocked()) { S.draft.captain = S.draft.captain === b.dataset.pid ? null : b.dataset.pid; S.dirty = true; S.confirmLock = false; setMsg(null); render(); }
   else if (act === "add") addPlayer(b.dataset.pid);
   else if (act === "save") save(false);
   else if (act === "lock") { S.confirmLock = true; render(); }
