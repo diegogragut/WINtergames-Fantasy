@@ -169,12 +169,12 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .role { font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--frost); }
 .remove { position: absolute; top: -4px; right: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--bad); color: #fff; font-weight: 700; line-height: 1; display: grid; place-items: center; }
 .remove:hover { filter: brightness(1.15); }
-.capbadge { position: absolute; top: -4px; left: 18px; width: 22px; height: 22px; border-radius: 50%; border: 1px dashed rgba(233, 238, 255, .5); background: rgba(7, 12, 34, .75); color: var(--muted); font-family: var(--display); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0; }
-.capbadge:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
-.capbadge.on { border: 2px solid var(--ink); background: var(--gold); color: var(--ink); box-shadow: 0 0 0 2px var(--gold); }
-.capbadge:disabled { cursor: default; }
-.capbadge.static { position: static; flex: none; }
-.slot.captain .token { box-shadow: 0 0 0 3px var(--gold), 0 4px 14px rgba(0,0,0,.35); }
+.token { position: relative; padding: 0; }
+.slot.filled button.token { cursor: pointer; }
+.slot.filled button.token:hover { transform: scale(1.05); }
+.capc { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--ink); border: 2px solid var(--ink); font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 1; display: grid; place-items: center; }
+.capc.static { position: static; flex: none; }
+.capline.need { color: var(--gold); }
 .capline { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .capline.muted { color: var(--muted); }
 
@@ -199,7 +199,7 @@ details.json { font-size: 12px; color: var(--muted); }
 details.json pre { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow: auto; max-height: 260px; color: var(--text); }
 
 /* Market */
-.filters { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.filters { display: grid; grid-template-columns: 1fr 1fr 1.1fr 1.4fr; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
 @media (max-width: 520px) { .filters { grid-template-columns: 1fr 1fr; } .filters .search { grid-column: 1 / -1; } }
 .filters label { display: grid; gap: 4px; min-width: 0; }
 .filters select, .filters input { width: 100%; min-width: 0; background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
@@ -501,6 +501,9 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
             <select id="f-pos"><option value="ALL">All</option><option value="GK">GK</option><option value="CB">CB</option><option value="ST">ST</option></select>
           </label>
           <label><span class="eyebrow">Team</span><select id="f-team"><option value="ALL">All teams</option></select></label>
+          <label><span class="eyebrow">Sort</span>
+            <select id="f-sort"><option value="az">Name A–Z</option><option value="price-desc">Price: high to low</option><option value="price-asc">Price: low to high</option></select>
+          </label>
           <label class="search"><span class="eyebrow">Search</span><input id="f-q" type="search" placeholder="Player name…" autocomplete="off"></label>
         </div>
         <div class="target-hint" id="targethint" hidden></div>
@@ -571,7 +574,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
         <ul>
           <li>Pick exactly <strong>7 players</strong>: 5 starters and 2 bench, with a budget of <strong>100M</strong>.</li>
           <li>Starters: 1 GK, 2 CB and 2 ST. The bench takes any position. Only starters score; the bench earns 0.</li>
-          <li><strong>Captain:</strong> give the armband to one of your players. His points count double. A captain on the bench scores 0, like any bench player.</li>
+          <li><strong>Captain (C):</strong> tap a player's shirt to make him captain. His points count double. You need a captain to save your squad. A captain on the bench scores 0, like any bench player.</li>
           <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Lock early if you want it final.</li>
@@ -1132,6 +1135,7 @@ function validation(slots) {
 }
 async function save(lock = false) {
   if (!S.uid || S.saving) return;
+  if (!S.draft.captain || !S.draft.slots.includes(S.draft.captain)) { setMsg("Pick a captain before saving: tap a player's shirt."); render(); return; }
   if (lock && validation(S.draft.slots).length) return;
   S.saving = true; render();
   const row = { user_id: S.uid, slots: S.draft.slots.slice(), captain: S.draft.slots.includes(S.draft.captain) ? S.draft.captain : null, locked: lock || S.draft.locked };
@@ -1140,7 +1144,7 @@ async function save(lock = false) {
   if (error) {
     const m = error.message || "";
     if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
-    else if (m.includes("Over budget") || m.includes("slot") || m.includes("price")) setMsg(m);
+    else if (m.includes("Over budget") || m.includes("slot") || m.includes("price") || m.includes("captain")) setMsg(m);
     else if (m.includes("row-level security")) setMsg(pastDeadline() ? "Squads locked at kick-off, so changes can't be saved." : "This squad is locked and can't be changed.");
     else setMsg("Couldn't save: " + m);
   } else {
@@ -1163,11 +1167,12 @@ function slotHTML(i, totals) {
       <div class="slot-name">${S.target === i ? "Pick from market" : "Open"}</div></div>`;
   }
   const p = PBYID[pid], t = TEAM[p.team], isCap = S.draft.captain === pid;
-  const capCtl = isCap
-    ? `<button class="capbadge on" ${isLocked() ? "disabled" : ""} data-act="captain" data-pid="${pid}" title="Captain: points count double${isLocked() ? "" : ". Click to remove the armband"}" aria-label="${esc(p.name)} is captain${isLocked() ? "" : ". Remove armband"}">C</button>`
-    : isLocked() ? "" : `<button class="capbadge" data-act="captain" data-pid="${pid}" title="Make ${esc(p.name)} captain (2x points)" aria-label="Make ${esc(p.name)} captain">C</button>`;
+  const capMark = isCap ? `<span class="capc" aria-hidden="true">C</span>` : "";
+  const shirt = isLocked()
+    ? `<div class="token" ${isCap ? 'title="Captain"' : 'aria-hidden="true"'}>${t.abbr}${capMark}</div>`
+    : `<button class="token" type="button" data-act="captain" data-pid="${pid}" title="${isCap ? "Captain (2x points)" : `Tap to make ${esc(p.name)} captain`}" aria-label="${isCap ? `${esc(p.name)} is captain` : `Make ${esc(p.name)} captain`}">${t.abbr}${capMark}</button>`;
   return `<div class="slot filled${tgt}${isCap ? " captain" : ""}" style="--team:${t.color}">
-    <div class="token" aria-hidden="true">${t.abbr}</div>${capCtl}
+    ${shirt}
     <div class="slot-name">${esc(p.name)}</div>
     <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${isCap ? totals[pid].pts * 2 + " pts (2x)" : totals[pid].pts + " pts"}</span>` : ""}</div>
     ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
@@ -1194,16 +1199,17 @@ function renderSquad(totals) {
       <button class="btn danger" data-act="lock-confirm" ${S.saving ? "disabled" : ""}>Yes, lock it</button>
       <button class="btn" data-act="lock-cancel">Cancel</button>`;
   } else {
-    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty ? "disabled" : ""}>${S.saving ? "Saving…" : S.dirty ? "Save squad" : "Saved"}</button>
-      <button class="btn" data-act="lock" ${errs.length || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : ""}">Lock squad</button>`;
+    const noCap = !S.draft.captain;
+    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty || noCap ? "disabled" : ""} title="${noCap ? "Pick a captain first" : ""}">${S.saving ? "Saving…" : !S.dirty ? "Saved" : noCap ? "Pick a captain to save" : "Save squad"}</button>
+      <button class="btn" data-act="lock" ${errs.length || noCap || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : noCap ? "Pick a captain first" : ""}">Lock squad</button>`;
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
   const errLine = !S.msg ? errs.filter(e => !e.startsWith("Squad incomplete")).map(e => `<div class="err">${esc(e)}</div>`).join("") : "";
   if (S.draft.captain && !slots.includes(S.draft.captain)) S.draft.captain = null;
   const cap = S.draft.captain ? PBYID[S.draft.captain] : null, capOnBench = cap && S.draft.slots.indexOf(S.draft.captain) > 4;
   const captainLine = cap
-    ? `<div class="capline"><span class="capbadge on static">C</span><span>Captain: <b>${esc(cap.name)}</b>. His points count double.${capOnBench ? ' <span class="err">He is on the bench, so he scores 0. Pick a starter.</span>' : ""}</span></div>`
-    : n ? `<div class="capline muted"><span class="capbadge static">C</span><span>${isLocked() ? "No captain was picked." : "Pick a captain: tap the <b>C</b> on any of your players. His points count double."}</span></div>` : "";
+    ? `<div class="capline"><span class="capc static">C</span><span>Captain: <b>${esc(cap.name)}</b>. His points count double.${capOnBench ? ' <span class="err">He is on the bench, so he scores 0. Pick a starter.</span>' : ""}</span></div>`
+    : n ? `<div class="capline ${isLocked() ? "muted" : "need"}"><span class="capc static">C</span><span>${isLocked() ? "No captain was picked." : "Pick a captain before saving: tap a player's shirt. His points count double."}</span></div>` : "";
   const cost = squadCost(slots), left = BUDGET - cost, pct = Math.min(100, cost / BUDGET * 100);
   const budget = `<div class="budget ${left < 0 ? "over" : ""}">
       <div class="budget-top"><span><b class="num">${fmtM(cost)}</b> of ${fmtM(BUDGET)} spent</span><span class="num">${left >= 0 ? fmtM(left) + " left" : fmtM(-left) + " over"}</span></div>
@@ -1236,7 +1242,7 @@ function stateJSON(totals) {
   };
 }
 function renderMarket(totals) {
-  const fp = $("f-pos").value, ft = $("f-team").value, q = slug($("f-q").value || "");
+  const fp = $("f-pos").value, ft = $("f-team").value, fs = $("f-sort").value, q = slug($("f-q").value || "");
   const { c, n } = selectionPct();
   const tc = teamCounts(S.draft.slots), locked = isLocked();
   const hint = $("targethint");
@@ -1250,7 +1256,12 @@ function renderMarket(totals) {
     if (ft !== "ALL" && p.team !== ft) return false;
     if (q && !slug(p.name).includes(q)) return false;
     return true;
-  }).sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || totals[b.id].pts - totals[a.id].pts || a.name.localeCompare(b.name));
+  }).sort((a, b) => {
+    const byName = a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+    if (fs === "price-desc") return (b.price ?? -1) - (a.price ?? -1) || byName;
+    if (fs === "price-asc") return (a.price ?? 999) - (b.price ?? 999) || byName;
+    return byName;
+  });
   $("mkt").innerHTML = rows.length ? rows.map(p => {
     const t = TEAM[p.team];
     const inSquad = S.draft.slots.includes(p.id);
@@ -1449,7 +1460,7 @@ document.addEventListener("click", e => {
   if (act === "target") { const i = +b.dataset.slot; S.target = S.target === i ? null : i; setMsg(null); render(); if (S.target != null && innerWidth <= 900) $("market").scrollIntoView({ behavior: "smooth", block: "start" }); }
   else if (act === "untarget") { S.target = null; render(); }
   else if (act === "remove") removeSlot(+b.dataset.slot);
-  else if (act === "captain" && !isLocked()) { S.draft.captain = S.draft.captain === b.dataset.pid ? null : b.dataset.pid; S.dirty = true; S.confirmLock = false; setMsg(null); render(); }
+  else if (act === "captain" && !isLocked()) { if (S.draft.captain !== b.dataset.pid) { S.draft.captain = b.dataset.pid; S.dirty = true; S.confirmLock = false; setMsg(null); } render(); }
   else if (act === "add") addPlayer(b.dataset.pid);
   else if (act === "save") save(false);
   else if (act === "lock") { S.confirmLock = true; render(); }
@@ -1484,7 +1495,7 @@ $("google-btn").addEventListener("click", signInWithGoogle);
 $("team-form").addEventListener("submit", submitTeam);
 $("adj-form").addEventListener("submit", addAdj);
 $("team-cancel").addEventListener("click", () => { if (S.profile?.status === "approved") { showScreen("app"); render(); } else showWait(); });
-["f-pos","f-team"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
+["f-pos","f-team","f-sort"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
 $("f-q").addEventListener("input", () => renderMarket(playerTotals()));
 const teamOptions = TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
 $("f-team").insertAdjacentHTML("beforeend", teamOptions);

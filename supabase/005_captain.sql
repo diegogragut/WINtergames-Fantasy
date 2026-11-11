@@ -1,6 +1,7 @@
--- WINter Fantasy: captain armband (2x points).
+-- WINter Fantasy: captain (C), 2x points.
 -- Run once in Supabase → SQL Editor (after 004_market.sql).
--- Each squad can name one of its own players as captain. His points count double.
+-- Each squad names one of its own players as captain. His points count double.
+-- A squad with players can't be saved without a captain.
 
 alter table public.squads add column if not exists captain text;
 
@@ -46,8 +47,11 @@ begin
   if total > 100 then
     raise exception 'Over budget: this squad costs %M, the limit is 100M.', total;
   end if;
-  if new.captain is not null and not (new.captain = any(new.slots)) then
+  if new.captain is not null and not coalesce(new.captain = any(array_remove(new.slots, null)), false) then
     raise exception 'Your captain must be one of your squad''s players.';
+  end if;
+  if new.captain is null and exists (select 1 from unnest(new.slots) x where x is not null) then
+    raise exception 'Pick a captain before saving: tap a player''s shirt.';
   end if;
   if new.locked and (select count(x) from unnest(new.slots) x where x is not null) < 7 then
     raise exception 'Only a complete 7-player squad can be locked.';

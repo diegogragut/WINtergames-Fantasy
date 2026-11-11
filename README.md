@@ -16,7 +16,7 @@ Fantasy league for the Winter Games 2026 tournament (Nov 12 – Nov 23).
 | Yellow card | −2 |
 | Red card | −5 |
 
-Only starters score. Each manager picks a **captain**, whose points count double. Squads lock at the first kick-off: **Nov 12, 12:30 (Costa Rica time)**. Every match runs 12:30–13:10. The database enforces that, the 2-per-team rule, and "a locked squad can't change", so nobody can get around them.
+Only starters score. Each manager picks a **captain (C)** by tapping a player's shirt; his points count double, and a squad can't be saved without one. Squads lock at the first kick-off: **Nov 12, 12:30 (Costa Rica time)**. Every match runs 12:30–13:10. The database enforces that, the 2-per-team rule, and "a locked squad can't change", so nobody can get around them.
 
 ## Files
 
