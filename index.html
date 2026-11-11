@@ -276,6 +276,32 @@ td.r, th.r { text-align: right; }
 .rank { font-family: var(--display); font-size: 20px; font-weight: 700; color: var(--muted); width: 36px; }
 .rank.top { color: var(--gold); }
 
+/* Approval: waiting screen + organizer Managers page */
+.wait-team { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 520px) { .wait-team { grid-template-columns: minmax(0, 1fr); } }
+.wait-team div { background: var(--panel-2); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.wait-team b { display: block; margin-top: 2px; overflow-wrap: anywhere; }
+.pill.bad { color: var(--bad); }
+.navbadge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 6px; border-radius: 99px; background: var(--gold); color: var(--ink); font-family: var(--body); font-size: 11px; font-weight: 700; letter-spacing: 0; vertical-align: 2px; }
+nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color: var(--frost); }
+.mgr-summary { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.mgr-summary div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; min-width: 120px; }
+.mgr-summary b { display: block; font-family: var(--display); font-size: 30px; line-height: 1; }
+.mgr-summary .warn b { color: var(--gold); } .mgr-summary .ok b { color: var(--good); } .mgr-summary .bad b { color: var(--bad); }
+.mgr-groups { display: grid; gap: 22px; }
+.mgr-groups h3 { font-family: var(--display); font-size: 18px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.mgr-row { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) auto auto; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.mgr-row.pending { border-color: var(--gold); }
+@media (max-width: 760px) { .mgr-row { grid-template-columns: minmax(0, 1fr); } }
+.mgr-row .who2 b { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.mgr-row .who2 small, .mgr-row .acct small { color: var(--muted); display: block; overflow-wrap: anywhere; }
+.mgr-row .acct { min-width: 0; overflow-wrap: anywhere; }
+.mgr-row .meta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.mgr-row .actions { justify-content: flex-end; }
+@media (max-width: 760px) { .mgr-row .actions { justify-content: flex-start; } }
+.btn.ok { background: var(--good); border-color: var(--good); color: var(--ink); }
+.mgr-empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 14px; }
+
 /* Rules */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
 .rules .card { padding: 16px 18px; }
@@ -347,7 +373,8 @@ td.r, th.r { text-align: right; }
     <div class="steps" id="team-steps">
       <span class="done"><i>✓</i>Sign in</span>
       <span class="on"><i>2</i>Create team</span>
-      <span><i>3</i>Pick squad</span>
+      <span><i>3</i>Get approved</span>
+      <span><i>4</i>Pick squad</span>
     </div>
     <div style="display:grid;gap:6px">
       <h1 id="team-title">Create your team</h1>
@@ -378,6 +405,36 @@ td.r, th.r { text-align: right; }
   </div>
 </section>
 
+<!-- Waiting for approval -->
+<section class="gate" id="screen-wait" hidden>
+  <div class="gate-card wide">
+    <div class="gate-mark"><svg><use href="#mark"/></svg><div><b>WIN<span>ter</span> Fantasy</b><small>Winter Games 2026</small></div></div>
+    <div class="steps" id="wait-steps">
+      <span class="done"><i>✓</i>Sign in</span>
+      <span class="done"><i>✓</i>Create team</span>
+      <span class="on"><i>3</i>Get approved</span>
+      <span><i>4</i>Pick squad</span>
+    </div>
+    <div style="display:grid;gap:8px">
+      <span class="pill warn" id="wait-pill" style="justify-self:start">Waiting for approval</span>
+      <h1 id="wait-title">You're almost in</h1>
+      <p id="wait-text"></p>
+    </div>
+    <div class="wait-team">
+      <div><span class="eyebrow">Team</span><b id="wait-team"></b></div>
+      <div><span class="eyebrow">Manager</span><b id="wait-manager"></b></div>
+      <div><span class="eyebrow">Google account</span><b id="wait-email"></b></div>
+    </div>
+    <p class="fine" id="wait-deadline"></p>
+    <p class="okmsg" id="wait-msg" hidden></p>
+    <div class="actions">
+      <button class="btn primary" type="button" data-act="wait-check" id="wait-check">Check again</button>
+      <button class="btn" type="button" data-act="edit-team">Edit team details</button>
+      <button class="btn" type="button" data-act="signout">Sign out</button>
+    </div>
+  </div>
+</section>
+
 <!-- App -->
 <div id="screen-app" hidden>
 <header class="top">
@@ -391,6 +448,7 @@ td.r, th.r { text-align: right; }
       <a href="#matches" data-view="matches">Matches</a>
       <a href="#table" data-view="table">Table</a>
       <a href="#rules" data-view="rules">Rules</a>
+      <a href="#managers" data-view="managers" id="nav-managers" hidden>Managers<span class="navbadge" id="nav-badge" hidden></span></a>
     </nav>
     <div class="who" id="who"></div>
   </div>
@@ -480,6 +538,13 @@ td.r, th.r { text-align: right; }
     </div>
   </section>
 
+  <section id="view-managers" data-viewpanel="managers" hidden>
+    <h2 class="sec">Managers</h2>
+    <p class="sub">Only organizers see this page. Approve each manager once they've paid the entry fee. Until then they can't pick a squad, and they don't appear on the league table.</p>
+    <div class="mgr-summary" id="mgr-summary"></div>
+    <div class="mgr-groups" id="mgr-list"></div>
+  </section>
+
   <section id="view-rules" data-viewpanel="rules" hidden>
     <h2 class="sec">How WINter Fantasy works</h2>
     <p class="sub">One team and one squad per manager for the whole tournament.</p>
@@ -510,6 +575,7 @@ td.r, th.r { text-align: right; }
         <h3>Accounts &amp; saving</h3>
         <ul>
           <li>You sign in with Google. Your team and squad are saved to your account and follow you to any device.</li>
+          <li>Entry is paid. After you create your team, an organizer approves you once you've paid. Only approved managers pick squads and appear on the table.</li>
           <li>Selection % is the share of complete squads that include a player.</li>
           <li>The league organizer enters each result, scorers, cards and goalkeepers after the final whistle. Points update for everyone at once.</li>
           <li>Positions are set by the organizer. A player without a position can fill any slot.</li>
@@ -588,6 +654,8 @@ const PBYID = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
 const S = {
   sb: null, channel: null, user: null, uid: null, profile: null, owner: false,
   profiles: {},          // uid -> profile row
+  members: null,         // organizer-only list from admin_members()
+  membersError: null,
   squads: {},            // uid -> squad row
   stats: {},             // matchId -> { hs, as, gk: {home, away}, ev }
   positions: {},         // pid -> GK|DEF|MID|FWD
@@ -605,7 +673,7 @@ const pastDeadline = () => Date.now() >= DEADLINE.getTime();
 const isLocked = () => S.draft.locked || pastDeadline();
 
 function showScreen(name) {
-  ["loading","setup","login","team","app"].forEach(n => $("screen-" + n).hidden = n !== name);
+  ["loading","setup","login","team","wait","app"].forEach(n => $("screen-" + n).hidden = n !== name);
   window.scrollTo(0, 0);
 }
 
@@ -632,8 +700,9 @@ function playerTotals() {
 }
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
 const squadPoints = (slots, totals) => isComplete(slots) ? slots.slice(0, 5).reduce((n, pid) => n + (totals[pid]?.pts || 0), 0) : 0;
+const isApproved = uid => S.profiles[uid]?.status === "approved";
 function selectionPct() {
-  const full = Object.values(S.squads).filter(s => isComplete(s.slots));
+  const full = Object.entries(S.squads).filter(([uid, s]) => isApproved(uid) && isComplete(s.slots)).map(([, s]) => s);
   const c = {};
   full.forEach(s => s.slots.forEach(pid => c[pid] = (c[pid] || 0) + 1));
   return { c, n: full.length };
@@ -653,7 +722,106 @@ async function signInWithGoogle() {
 }
 async function signOut() {
   if (S.channel) { S.sb.removeChannel(S.channel); S.channel = null; }
+  stopWaitWatch();
   await S.sb.auth.signOut();
+}
+
+/* ---------- Approval (paid entry) ---------- */
+let waitChannel = null, waitTimer = null;
+function routeByStatus() {
+  if (S.profile?.status === "approved") { stopWaitWatch(); return enterApp(); }
+  showWait();
+}
+function showWait() {
+  const p = S.profile, rejected = p.status === "rejected";
+  $("wait-pill").textContent = rejected ? "Not accepted" : "Waiting for approval";
+  $("wait-pill").className = "pill " + (rejected ? "bad" : "warn");
+  $("wait-title").textContent = rejected ? "Your request wasn't accepted" : "You're almost in";
+  $("wait-text").textContent = rejected
+    ? "An organizer didn't accept this team. If you think that's a mistake, talk to the league organizer. They can still approve you from here."
+    : "Your team is registered. To play, pay the entry fee to the league organizer. As soon as they confirm your payment, this page opens the squad builder on its own. You can leave and come back any time.";
+  $("wait-team").textContent = p.team_name;
+  $("wait-manager").textContent = p.manager_name;
+  $("wait-email").textContent = S.user?.email || "";
+  $("wait-deadline").textContent = pastDeadline() ? "The tournament has started, so squads can no longer be picked." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}. Get approved before then to pick yours.`;
+  $("wait-msg").hidden = true;
+  showScreen("wait");
+  startWaitWatch();
+}
+function startWaitWatch() {
+  if (!waitChannel) {
+    waitChannel = S.sb.channel("me-" + S.uid)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: "id=eq." + S.uid }, ({ new: row }) => {
+        S.profile = { ...S.profile, ...row };
+        if ($("screen-wait").hidden) return;
+        routeByStatus();
+      })
+      .subscribe();
+  }
+  clearInterval(waitTimer);
+  waitTimer = setInterval(() => { if (!$("screen-wait").hidden) checkApproval(true); }, 30000);
+}
+function stopWaitWatch() {
+  clearInterval(waitTimer); waitTimer = null;
+  if (waitChannel) { S.sb.removeChannel(waitChannel); waitChannel = null; }
+}
+async function checkApproval(quiet) {
+  const btn = $("wait-check"); if (!quiet) btn.disabled = true;
+  const { data, error } = await S.sb.from("profiles").select("*").eq("id", S.uid).maybeSingle();
+  btn.disabled = false;
+  if (error || !data) return;
+  S.profile = data;
+  if (data.status === "approved") return routeByStatus();
+  if (!quiet) { showWait(); $("wait-msg").textContent = "Checked just now. Still waiting for an organizer."; $("wait-msg").hidden = false; }
+}
+
+/* Organizer: member list */
+async function loadMembers() {
+  if (!S.owner) return;
+  const { data, error } = await S.sb.rpc("admin_members");
+  if (error) { S.members = null; S.membersError = error.message; }
+  else { S.members = data; S.membersError = null; }
+  renderManagers();
+}
+async function setMemberStatus(id, status) {
+  const m = S.members?.find(x => x.id === id);
+  const { error } = await S.sb.from("profiles").update({ status }).eq("id", id);
+  if (error) { showNotice("Couldn't update " + (m?.team_name || "that manager") + ": " + error.message); return; }
+  if (m) m.status = status;
+  if (S.profiles[id]) S.profiles[id].status = status;
+  renderManagers(); render();
+}
+function renderManagers() {
+  const nav = $("nav-managers"), badge = $("nav-badge");
+  nav.hidden = !S.owner;
+  if (!S.owner) return;
+  const list = S.members || [];
+  const pending = list.filter(m => m.status === "pending"), approved = list.filter(m => m.status === "approved"), rejected = list.filter(m => m.status === "rejected");
+  badge.hidden = !pending.length; badge.textContent = pending.length;
+  $("mgr-summary").innerHTML = `
+    <div class="warn"><span class="eyebrow">Waiting</span><b class="num">${pending.length}</b></div>
+    <div class="ok"><span class="eyebrow">Approved</span><b class="num">${approved.length}</b></div>
+    <div class="bad"><span class="eyebrow">Not accepted</span><b class="num">${rejected.length}</b></div>`;
+  if (S.membersError) { $("mgr-list").innerHTML = `<p class="err">Couldn't load managers: ${esc(S.membersError)}</p>`; return; }
+  const row = m => {
+    const joined = new Date(m.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    let btns;
+    if (m.is_organizer) btns = `<span class="pill lock">Organizer</span>`;
+    else if (m.status === "pending") btns = `<button class="btn ok" data-act="member" data-id="${m.id}" data-status="approved">Approve</button><button class="btn" data-act="member" data-id="${m.id}" data-status="rejected">Reject</button>`;
+    else if (m.status === "approved") btns = `<button class="btn" data-act="member" data-id="${m.id}" data-status="pending">Move back to waiting</button>`;
+    else btns = `<button class="btn ok" data-act="member" data-id="${m.id}" data-status="approved">Approve</button>`;
+    return `<div class="mgr-row ${m.status}">
+      <div class="who2"><b>${esc(m.team_name)}</b><small>Manager: ${esc(m.manager_name)}${m.favorite_team ? " · Supports " + esc(m.favorite_team) : ""}</small></div>
+      <div class="acct">${esc(m.email)}<small>${m.google_name ? "Google name: " + esc(m.google_name) : ""}</small></div>
+      <div class="meta">Joined ${joined} · ${m.players_picked}/7 picked</div>
+      <div class="actions">${btns}</div>
+    </div>`;
+  };
+  const group = (title, items, empty) => `<div><h3>${title} (${items.length})</h3>${items.length ? items.map(row).join("") : `<div class="mgr-empty">${empty}</div>`}</div>`;
+  $("mgr-list").innerHTML =
+    group("Waiting for approval", pending, "Nobody is waiting. New managers show up here after they create their team.") +
+    group("Approved", approved, "No approved managers yet.") +
+    (rejected.length ? group("Not accepted", rejected, "") : "");
 }
 let sessionUid;
 async function handleSession(session) {
@@ -672,7 +840,7 @@ async function handleSession(session) {
   if (error) { showLoadError(error); return; }
   if (!data) { await loadProfilesOnly(); openTeamForm(false); return; }
   S.profile = data;
-  await enterApp();
+  await routeByStatus();
 }
 function showLoadError(error) {
   showScreen("setup");
@@ -693,7 +861,7 @@ function openTeamForm(editing) {
   $("team-email").textContent = S.user?.email || "";
   $("team-title").textContent = editing ? "Edit your team" : "Create your team";
   $("team-sub").textContent = editing ? "Change your team name or manager name. Your squad stays the same." : "Give your fantasy team a name. Other managers see it on the league table.";
-  $("team-submit").textContent = editing ? "Save changes" : "Create team and pick squad";
+  $("team-submit").textContent = editing ? "Save changes" : "Create team";
   $("team-cancel").hidden = !editing;
   $("team-steps").hidden = editing;
   $("team-err").hidden = true;
@@ -720,14 +888,15 @@ async function submitTeam(e) {
   btn.disabled = false;
   if (error) { $("team-err").textContent = "Couldn't save your team: " + error.message; $("team-err").hidden = false; return; }
   S.profile = data; S.profiles[S.uid] = data;
-  if (S.editingTeam) { showScreen("app"); render(); }
-  else { location.hash = "#squad"; await enterApp(); }
+  if (S.editingTeam && data.status === "approved") { showScreen("app"); render(); }
+  else { location.hash = "#squad"; await routeByStatus(); }
 }
 
 async function enterApp() {
   const { data: adm } = await S.sb.from("admins").select("user_id").eq("user_id", S.uid).maybeSingle();
   S.owner = !!adm;
   await loadAll();
+  if (S.profile?.status !== "approved") return; // loadAll sent them to the waiting page
   if (!S.channel) {
     let t = null;
     const later = () => { clearTimeout(t); t = setTimeout(loadAll, 400); };
@@ -758,6 +927,11 @@ async function loadAll() {
   S.stats = Object.fromEntries(st.data.map(r => [r.match_id, { hs: r.home_score, as: r.away_score, gk: { home: r.gk_home || "", away: r.gk_away || "" }, ev: r.events || {} }]));
   S.positions = Object.fromEntries(po.data.map(r => [r.player_id, r.pos]));
   if (S.profiles[S.uid]) S.profile = S.profiles[S.uid];
+  if (S.profile && S.profile.status !== "approved") { // approval was taken away while they were in the app
+    if (S.channel) { S.sb.removeChannel(S.channel); S.channel = null; }
+    showWait(); return;
+  }
+  if (S.owner) loadMembers();
   const mine = S.squads[S.uid];
   if (!S.loadedMine || !S.dirty) {
     if (mine) S.draft = { slots: mine.slots.slice(), locked: !!mine.locked };
@@ -988,7 +1162,7 @@ async function clearResult(mid) {
   delete S.stats[mid]; S.openEditor = null; render();
 }
 function renderTable(totals) {
-  const rows = Object.values(S.profiles).filter(p => p.manager_name).map(p => {
+  const rows = Object.values(S.profiles).filter(p => p.manager_name && p.status === "approved").map(p => {
     const sq = S.squads[p.id], slots = sq?.slots || [];
     const n = slots.filter(Boolean).length;
     return { p, sq, n, pts: squadPoints(slots, totals) };
@@ -1025,7 +1199,7 @@ function renderWho() {
 function render() {
   if (!S.profile) return;
   const totals = playerTotals();
-  renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals); renderAdj(totals);
+  renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals); renderAdj(totals); renderManagers();
 }
 
 /* ---------- Organizer point adjustments ---------- */
@@ -1079,7 +1253,8 @@ async function delAdj(id) {
 
 /* ---------- Views ---------- */
 function showView() {
-  const v = ["squad","matches","table","rules"].includes(location.hash.slice(1)) ? location.hash.slice(1) : "squad";
+  const views = ["squad","matches","table","rules"].concat(S.owner ? ["managers"] : []);
+  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : "squad";
   document.querySelectorAll("[data-viewpanel]").forEach(el => el.hidden = el.dataset.viewpanel !== v);
   document.querySelectorAll("nav.tabs a").forEach(a => { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
 }
@@ -1108,6 +1283,8 @@ document.addEventListener("click", e => {
   else if (act === "adj-close") { S.adjPid = null; render(); }
   else if (act === "adj-quick") { $("adj-pts").value = b.dataset.v; $("adj-reason").focus(); }
   else if (act === "adj-del") delAdj(b.dataset.id);
+  else if (act === "member") setMemberStatus(b.dataset.id, b.dataset.status);
+  else if (act === "wait-check") checkApproval(false);
   else if (act === "signout") signOut();
 });
 document.addEventListener("change", async e => {
@@ -1125,7 +1302,7 @@ document.addEventListener("change", async e => {
 $("google-btn").addEventListener("click", signInWithGoogle);
 $("team-form").addEventListener("submit", submitTeam);
 $("adj-form").addEventListener("submit", addAdj);
-$("team-cancel").addEventListener("click", () => { showScreen("app"); render(); });
+$("team-cancel").addEventListener("click", () => { if (S.profile?.status === "approved") { showScreen("app"); render(); } else showWait(); });
 ["f-pos","f-team"].forEach(id => $(id).addEventListener("change", () => renderMarket(playerTotals())));
 $("f-q").addEventListener("input", () => renderMarket(playerTotals()));
 const teamOptions = TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
