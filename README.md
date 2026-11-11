@@ -12,6 +12,7 @@ Fantasy league for the Winter Games 2026 tournament (Nov 12 – Nov 23).
 | Assist | +2 |
 | Match win (every player on the winning team) | +1 |
 | Goalkeeper clean sheet | +3 |
+| Each goal conceded (CBs and goalkeeper) | −1 |
 | Yellow card | −2 |
 | Red card | −5 |
 

@@ -576,6 +576,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
           <tr><td>Assist</td><td class="pos-pts">+2</td></tr>
           <tr><td>Match win (every player on the winning team)</td><td class="pos-pts">+1</td></tr>
           <tr><td>Goalkeeper clean sheet</td><td class="pos-pts">+3</td></tr>
+          <tr><td>Each goal conceded (CBs and goalkeeper)</td><td class="neg-pts">−1</td></tr>
           <tr><td>Yellow card</td><td class="neg-pts">−2</td></tr>
           <tr><td>Red card</td><td class="neg-pts">−5</td></tr>
         </tbody></table>
@@ -804,7 +805,7 @@ function showScreen(name) {
 /* ---------- Scoring ---------- */
 function playerTotals() {
   const t = {};
-  PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, y: 0, r: 0, bonus: 0, pts: 0 });
+  PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, ga: 0, y: 0, r: 0, bonus: 0, pts: 0 });
   S.adjust.forEach(a => { if (t[a.player_id]) t[a.player_id].bonus += +a.points || 0; });
   FIXTURES.forEach(f => {
     const s = S.stats[f.id];
@@ -812,6 +813,16 @@ function playerTotals() {
     const hs = +s.hs || 0, as = +s.as || 0;
     const winner = hs > as ? f.home : as > hs ? f.away : null;
     if (winner) TEAM[winner].players.forEach(p => t[p.id].w += 1);
+    // Goals conceded: −1 per goal for the team's CBs and its goalkeeper
+    // (the keeper recorded for the match, or the team's GKs if none was recorded).
+    const concede = (team, keeper, goals) => {
+      if (!goals) return;
+      TEAM[team].players.forEach(p => {
+        if (p.pos === "CB" || (keeper ? p.id === keeper : p.pos === "GK")) t[p.id].ga += goals;
+      });
+    };
+    concede(f.home, s.gk.home, as);
+    concede(f.away, s.gk.away, hs);
     if (as === 0 && s.gk.home && t[s.gk.home]) t[s.gk.home].cs += 1;
     if (hs === 0 && s.gk.away && t[s.gk.away]) t[s.gk.away].cs += 1;
     Object.entries(s.ev || {}).forEach(([pid, e]) => {
@@ -819,7 +830,7 @@ function playerTotals() {
       t[pid].g += +e.g || 0; t[pid].a += +e.a || 0; t[pid].y += +e.y || 0; t[pid].r += +e.r || 0;
     });
   });
-  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.y * 2 - x.r * 5 + x.bonus);
+  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.ga - x.y * 2 - x.r * 5 + x.bonus);
   return t;
 }
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
