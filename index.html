@@ -736,10 +736,10 @@ function showWait() {
   const p = S.profile, rejected = p.status === "rejected";
   $("wait-pill").textContent = rejected ? "Not accepted" : "Waiting for approval";
   $("wait-pill").className = "pill " + (rejected ? "bad" : "warn");
-  $("wait-title").textContent = rejected ? "Your request wasn't accepted" : "You're almost in";
+  $("wait-title").textContent = rejected ? "Your request wasn't accepted" : "Wait to be accepted";
   $("wait-text").textContent = rejected
-    ? "An organizer didn't accept this team. If you think that's a mistake, talk to the league organizer. They can still approve you from here."
-    : "Your team is registered. To play, pay the entry fee to the league organizer. As soon as they confirm your payment, this page opens the squad builder on its own. You can leave and come back any time.";
+    ? "An organizer didn't accept this team. If you think that's a mistake, talk to the league organizer."
+    : "Your team is registered. This page opens the squad builder as soon as you're accepted.";
   $("wait-team").textContent = p.team_name;
   $("wait-manager").textContent = p.manager_name;
   $("wait-email").textContent = S.user?.email || "";
