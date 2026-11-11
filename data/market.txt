@@ -1,0 +1,102 @@
+# FANTASY FUTSAL – OFFICIAL PLAYER MARKET
+# 7 players per team · 100M budget · Rating-based pricing only
+# Format: rating | name | position
+
+10 | Ian Goldberg | ST
+10 | Ignacio Child | CB
+10 | Sergio Sauma | ST
+10 | Matias Alfaro | ST
+9 | Nicholas Cook | ST
+9 | Antonio Jimenez | ST
+9 | Ayote | ST
+9 | Patrick van der Laat | CB
+9 | Luciano Soto | ST
+8 | Toto Jay | ST
+8 | Felipe Pena | ST
+8 | Roberto Zamora | ST
+8 | Julian Segura | CB
+8 | Alan Woodbridge | CB
+8 | Stefan Matzen | ST
+8 | Emiliano Silva | ST
+8 | Marco Olivo | CB
+7 | Diego Ruiz | CB
+7 | Alessio Riggioni | ST
+7 | Ignacio Bogantes | ST
+7 | Emilio Atmella | CB
+7 | Nono Guzman | CB
+7 | Javier Sanabria | CB
+6 | Patrick Ferris | ST
+6 | Alejandro Vasquez | ST
+6 | Eduardo Odio | ST
+6 | Andres Quesada | ST
+6 | Raymond Semaan | CB
+6 | Santiago Jimenez | ST
+6 | Bogis | ST
+6 | Santiago Mora | CB
+5 | Randy Xirinachs | GK
+5 | Ruben Garita | CB
+5 | Luciano Segnini | ST
+5 | Alejandro Madrigal | GK
+5 | Felipe Campos | GK
+5 | Eric Brenes | CB
+5 | Tomas Quijano | ST
+5 | Juanpi Chavarria | CB
+5 | Sebastian Madrigal | CB
+5 | Gabriel Mata | CB
+5 | Emilio Artavia | GK
+5 | Gianluca Fonseca | CB
+5 | Alejandro Ulloa | CB
+5 | Oscar Saborio | CB
+5 | Alejandro Garro | ST
+5 | Felipe Ferraro | CB
+5 | Alberto Pacheco | ST
+5 | Diego Granados | ST
+5 | Agustin Pacheco | GK
+5 | Hacha Mango | CB
+5 | Martin Castro | CB
+5 | Pipe Bersoza | ST
+4 | Antonio Fernandez | CB
+4 | Diego Gutierrez | GK
+4 | Franco Hernandez | CB
+4 | Luis Carlos | CB
+4 | Gaza | GK
+4 | Emiliano Crivelli | CB
+4 | Alessandro de Carlo | CB
+4 | Felipe Volio | CB
+4 | Felipe Coronas | ST
+4 | Andres Soto | ST
+4 | Ignacio Rivera | ST
+4 | Agustin Mendez | CB
+3 | Garcia | CB
+3 | Sebastian Solera | CB
+3 | Matias Quiros | CB
+3 | Emiliano Guier | ST
+3 | Alberto Jimenez | CB
+3 | Campanazo | CB
+3 | Mosquito | CB
+3 | Alejandro Soto | CB
+3 | Julian Regueyra | CB
+3 | Ignacio Jaramillo | CB
+3 | Santiago Mena | CB
+3 | Jupa Popi | CB
+3 | Emiliano Mendez | ST
+3 | Julian Garnier | ST
+3 | Ignacio Garnier | ST
+3 | Kai Andre | CB
+3 | Dylan Alfaro | CB
+3 | Diego Quiros | ST
+2 | Stefano Battaglini | CB
+2 | Felipe Gomez | ST
+2 | Andres Rodriguez | CB
+2 | Daniel Coto | CB
+2 | Diego Orozco | CB
+2 | David Sandi | CB
+2 | Gafas | CB
+2 | Diego Saldana | CB
+2 | Jan Saravia | CB
+2 | Antonio Carballo | CB
+2 | Martin Salom | CB
+2 | Gabriel Soto | CB
+2 | David Cascante | CB
+2 | Jose Miguel | GK
+2 | Luis Fernando Cedeno | CB

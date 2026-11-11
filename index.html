@@ -210,6 +210,15 @@ td.r, th.r { text-align: right; }
 .tname { white-space: nowrap; color: var(--muted); }
 .pos { font-family: var(--display); font-weight: 700; letter-spacing: .06em; font-size: 14px; }
 .pos.none { color: var(--muted); font-weight: 500; }
+.price { display: block; font-family: var(--display); font-size: 17px; letter-spacing: .02em; }
+.rating { display: block; color: var(--muted); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+.pos-GK { color: var(--gold); } .pos-CB { color: var(--frost); } .pos-ST { color: var(--good); }
+.budget { display: grid; gap: 6px; }
+.budget-top { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
+.budget-top b { color: var(--text); }
+.budget-bar { height: 8px; border-radius: 99px; background: var(--panel-2); overflow: hidden; }
+.budget-bar i { display: block; height: 100%; background: var(--good); border-radius: 99px; }
+.budget.over .budget-bar i { background: var(--bad); } .budget.over .budget-top span:last-child { color: var(--bad); font-weight: 700; }
 .posselect { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; font-size: 12px; }
 .poswrap { display: flex; align-items: center; gap: 6px; }
 .adjbtn { border: 1px solid var(--gold); color: var(--gold); background: transparent; border-radius: 6px; padding: 2px 7px; font-size: 12px; font-weight: 700; line-height: 1.4; }
@@ -481,7 +490,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
         </div>
         <div class="filters">
           <label><span class="eyebrow">Position</span>
-            <select id="f-pos"><option value="ALL">All</option><option>GK</option><option>DEF</option><option>MID</option><option>FWD</option><option value="NONE">Not set</option></select>
+            <select id="f-pos"><option value="ALL">All</option><option value="GK">GK</option><option value="CB">CB</option><option value="ST">ST</option></select>
           </label>
           <label><span class="eyebrow">Team</span><select id="f-team"><option value="ALL">All teams</option></select></label>
           <label class="search"><span class="eyebrow">Search</span><input id="f-q" type="search" placeholder="Player name…" autocomplete="off"></label>
@@ -511,7 +520,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
         </div>
         <div class="tablewrap">
           <table>
-            <thead><tr><th>Player</th><th>WINter Team</th><th>Pos</th><th class="r">Pts</th><th class="r">Sel %</th><th class="r">Action</th></tr></thead>
+            <thead><tr><th>Player</th><th>WINter Team</th><th>Pos</th><th class="r">Price</th><th class="r">Pts</th><th class="r">Sel %</th><th class="r">Action</th></tr></thead>
             <tbody id="mkt"></tbody>
           </table>
         </div>
@@ -552,8 +561,9 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
       <div class="card">
         <h3>Your squad</h3>
         <ul>
-          <li>Pick exactly <strong>7 players</strong>: 5 starters and 2 bench.</li>
-          <li>Starters fill GK, DEF, DEF, MID and FWD. Only starters score; the bench earns 0.</li>
+          <li>Pick exactly <strong>7 players</strong>: 5 starters and 2 bench, with a budget of <strong>100M</strong>.</li>
+          <li>Starters: 1 GK, 2 CB and 2 ST. The bench takes any position. Only starters score; the bench earns 0.</li>
+          <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Lock early if you want it final.</li>
           <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. Only complete squads score.</li>
@@ -631,8 +641,8 @@ const FIXTURES = [
   return { id, home, away, local, group: GROUP[home], at, end: new Date(at.getTime() + MATCH_MINUTES * 60000) };
 });
 const DEADLINE = FIXTURES[0].at;
-const SLOTS = ["GK","DEF","DEF","MID","FWD","BENCH","BENCH"];
-const ROLES = ["GK","DEF","MID","FWD"];
+const SLOTS = ["GK","CB","CB","ST","ST","BENCH","BENCH"]; // 1 GK, 2 CB, 2 ST + 2 bench
+const ROLES = ["GK","CB","ST"];
 const MAX_PER_TEAM = 2;
 const TEAM_ERR = "Invalid Squad: Maximum 2 players permitted from a single WINter team.";
 
@@ -649,6 +659,117 @@ TEAMS.forEach(([name, abbr, roster], i) => {
   });
 });
 const PBYID = Object.fromEntries(PLAYERS.map(p => [p.id, p]));
+
+/* ---------- Official player market (prices by rating) ---------- */
+const BUDGET = 100; // millions, for all 7 players
+const PRICE_BY_RATING = { 10: 25, 9: 21, 8: 17, 7: 13, 6: 10, 5: 8, 4: 6, 3: 4, 2: 2 };
+// player name (slug) -> [position, rating]. Source: data/market.txt
+const MARKET = {
+  "ian-goldberg": ["ST", 10],
+  "ignacio-child": ["CB", 10],
+  "sergio-sauma": ["ST", 10],
+  "matias-alfaro": ["ST", 10],
+  "nicholas-cook": ["ST", 9],
+  "antonio-jimenez": ["ST", 9],
+  "ayote": ["ST", 9],
+  "patrick-van-der-laat": ["CB", 9],
+  "luciano-soto": ["ST", 9],
+  "toto-jay": ["ST", 8],
+  "felipe-pena": ["ST", 8],
+  "roberto-zamora": ["ST", 8],
+  "julian-segura": ["CB", 8],
+  "alan-woodbridge": ["CB", 8],
+  "stefan-matzen": ["ST", 8],
+  "emiliano-silva": ["ST", 8],
+  "marco-olivo": ["CB", 8],
+  "diego-ruiz": ["CB", 7],
+  "alessio-riggioni": ["ST", 7],
+  "ignacio-bogantes": ["ST", 7],
+  "emilio-atmella": ["CB", 7],
+  "nono-guzman": ["CB", 7],
+  "javier-sanabria": ["CB", 7],
+  "patrick-ferris": ["ST", 6],
+  "alejandro-vasquez": ["ST", 6],
+  "eduardo-odio": ["ST", 6],
+  "andres-quesada": ["ST", 6],
+  "raymond-semaan": ["CB", 6],
+  "santiago-jimenez": ["ST", 6],
+  "bogis": ["ST", 6],
+  "santiago-mora": ["CB", 6],
+  "randy-xirinachs": ["GK", 5],
+  "ruben-garita": ["CB", 5],
+  "luciano-segnini": ["ST", 5],
+  "alejandro-madrigal": ["GK", 5],
+  "felipe-campos": ["GK", 5],
+  "eric-brenes": ["CB", 5],
+  "tomas-quijano": ["ST", 5],
+  "juanpi-chavarria": ["CB", 5],
+  "sebastian-madrigal": ["CB", 5],
+  "gabriel-mata": ["CB", 5],
+  "emilio-artavia": ["GK", 5],
+  "gianluca-fonseca": ["CB", 5],
+  "alejandro-ulloa": ["CB", 5],
+  "oscar-saborio": ["CB", 5],
+  "alejandro-garro": ["ST", 5],
+  "felipe-ferraro": ["CB", 5],
+  "alberto-pacheco": ["ST", 5],
+  "diego-granados": ["ST", 5],
+  "agustin-pacheco": ["GK", 5],
+  "hacha-mango": ["CB", 5],
+  "martin-castro": ["CB", 5],
+  "pipe-bersoza": ["ST", 5],
+  "antonio-fernandez": ["CB", 4],
+  "diego-gutierrez": ["GK", 4],
+  "franco-hernandez": ["CB", 4],
+  "luis-carlos": ["CB", 4],
+  "gaza": ["GK", 4],
+  "emiliano-crivelli": ["CB", 4],
+  "alessandro-de-carlo": ["CB", 4],
+  "felipe-volio": ["CB", 4],
+  "felipe-coronas": ["ST", 4],
+  "andres-soto": ["ST", 4],
+  "ignacio-rivera": ["ST", 4],
+  "agustin-mendez": ["CB", 4],
+  "garcia": ["CB", 3],
+  "sebastian-solera": ["CB", 3],
+  "matias-quiros": ["CB", 3],
+  "emiliano-guier": ["ST", 3],
+  "alberto-jimenez": ["CB", 3],
+  "campanazo": ["CB", 3],
+  "mosquito": ["CB", 3],
+  "alejandro-soto": ["CB", 3],
+  "julian-regueyra": ["CB", 3],
+  "ignacio-jaramillo": ["CB", 3],
+  "santiago-mena": ["CB", 3],
+  "jupa-popi": ["CB", 3],
+  "emiliano-mendez": ["ST", 3],
+  "julian-garnier": ["ST", 3],
+  "ignacio-garnier": ["ST", 3],
+  "kai-andre": ["CB", 3],
+  "dylan-alfaro": ["CB", 3],
+  "diego-quiros": ["ST", 3],
+  "stefano-battaglini": ["CB", 2],
+  "felipe-gomez": ["ST", 2],
+  "andres-rodriguez": ["CB", 2],
+  "daniel-coto": ["CB", 2],
+  "diego-orozco": ["CB", 2],
+  "david-sandi": ["CB", 2],
+  "gafas": ["CB", 2],
+  "diego-saldana": ["CB", 2],
+  "jan-saravia": ["CB", 2],
+  "antonio-carballo": ["CB", 2],
+  "martin-salom": ["CB", 2],
+  "gabriel-soto": ["CB", 2],
+  "david-cascante": ["CB", 2],
+  "jose-miguel": ["GK", 2],
+  "luis-fernando-cedeno": ["CB", 2]
+};
+PLAYERS.forEach(p => {
+  const m = MARKET[slug(p.name)];
+  p.pos = m ? m[0] : null; p.rating = m ? m[1] : null; p.price = m ? PRICE_BY_RATING[m[1]] : null;
+});
+const fmtM = v => (Math.round(v * 10) / 10) + "M";
+const squadCost = slots => slots.reduce((sum, pid) => sum + (pid ? (PBYID[pid]?.price || 0) : 0), 0);
 
 /* ---------- State ---------- */
 const S = {
@@ -712,7 +833,7 @@ function teamCounts(slots) {
   slots.forEach(pid => { if (pid) { const t = PBYID[pid]?.team; if (t) c[t] = (c[t] || 0) + 1; } });
   return c;
 }
-const eligible = (pid, i) => SLOTS[i] === "BENCH" || !S.positions[pid] || S.positions[pid] === SLOTS[i];
+const eligible = (pid, i) => SLOTS[i] === "BENCH" || PBYID[pid]?.pos === SLOTS[i];
 
 /* ---------- Auth & data ---------- */
 async function signInWithGoogle() {
@@ -946,13 +1067,16 @@ function addPlayer(pid) {
   if (isLocked()) return;
   const d = S.draft;
   if (d.slots.includes(pid)) return;
-  const team = PBYID[pid].team;
+  const p = PBYID[pid], team = p.team;
+  if (p.price == null) { setMsg(`${p.name} doesn't have a price yet, so he can't be picked.`); render(); return; }
   if ((teamCounts(d.slots)[team] || 0) >= MAX_PER_TEAM) { setMsg(TEAM_ERR); render(); return; }
+  const left = BUDGET - squadCost(d.slots);
+  if (p.price > left) { setMsg(`Over budget: ${p.name} costs ${fmtM(p.price)} and you have ${fmtM(left)} left.`); render(); return; }
   let slot = null;
   if (S.target != null && !d.slots[S.target] && eligible(pid, S.target)) slot = S.target;
   if (slot == null) slot = [0,1,2,3,4,5,6].find(i => !d.slots[i] && eligible(pid, i));
   if (slot == null) {
-    setMsg(d.slots.every(Boolean) ? "Your squad is full. Remove a player first." : `No open slot for a ${S.positions[pid]}. Free one up or use the bench.`);
+    setMsg(d.slots.every(Boolean) ? "Your squad is full. Remove a player first." : `No open ${p.pos} slot. Free one up or use the bench.`);
     render(); return;
   }
   d.slots[slot] = pid; S.target = null; S.dirty = true; setMsg(null); S.confirmLock = false;
@@ -968,6 +1092,13 @@ function validation(slots) {
   const n = slots.filter(Boolean).length;
   if (n < 7) errors.push(`Squad incomplete: ${n} of 7 players selected.`);
   if (Object.values(teamCounts(slots)).some(v => v > MAX_PER_TEAM)) errors.push(TEAM_ERR);
+  const cost = squadCost(slots);
+  if (cost > BUDGET) errors.push(`Over budget: this squad costs ${fmtM(cost)}, the limit is ${fmtM(BUDGET)}.`);
+  slots.forEach((pid, i) => {
+    const p = PBYID[pid];
+    if (p && p.price == null) errors.push(`${p.name} doesn't have a price yet. Remove him.`);
+    else if (p && i < 5 && p.pos !== SLOTS[i]) errors.push(`${p.name} is a ${p.pos} and can't play in the ${SLOTS[i]} slot. Remove him and add him again.`);
+  });
   return errors;
 }
 async function save(lock = false) {
@@ -980,6 +1111,7 @@ async function save(lock = false) {
   if (error) {
     const m = error.message || "";
     if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
+    else if (m.includes("Over budget") || m.includes("slot") || m.includes("price")) setMsg(m);
     else if (m.includes("row-level security")) setMsg(pastDeadline() ? "Squads locked at kick-off, so changes can't be saved." : "This squad is locked and can't be changed.");
     else setMsg("Couldn't save: " + m);
   } else {
@@ -1005,7 +1137,7 @@ function slotHTML(i, totals) {
   return `<div class="slot filled${tgt}" style="--team:${t.color}">
     <div class="token" aria-hidden="true">${t.abbr}</div>
     <div class="slot-name">${esc(p.name)}</div>
-    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)}${role !== "BENCH" ? ` · <span class="p num">${totals[pid].pts} pts</span>` : ""}</div>
+    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${totals[pid].pts} pts</span>` : ""}</div>
     ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
   </div>`;
 }
@@ -1034,10 +1166,16 @@ function renderSquad(totals) {
       <button class="btn" data-act="lock" ${errs.length || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : ""}">Lock squad</button>`;
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
-  const errLine = !S.msg && errs.includes(TEAM_ERR) ? `<div class="err">${TEAM_ERR}</div>` : "";
+  const errLine = !S.msg ? errs.filter(e => !e.startsWith("Squad incomplete")).map(e => `<div class="err">${esc(e)}</div>`).join("") : "";
+  const cost = squadCost(slots), left = BUDGET - cost, pct = Math.min(100, cost / BUDGET * 100);
+  const budget = `<div class="budget ${left < 0 ? "over" : ""}">
+      <div class="budget-top"><span><b class="num">${fmtM(cost)}</b> of ${fmtM(BUDGET)} spent</span><span class="num">${left >= 0 ? fmtM(left) + " left" : fmtM(-left) + " over"}</span></div>
+      <div class="budget-bar"><i style="width:${pct}%"></i></div>
+    </div>`;
   const hint = n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
   $("status").innerHTML = `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
+    ${budget}
     ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
     <div class="deadline">${pastDeadline() ? "The tournament is under way. Squads are final." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`}</div>
@@ -1047,13 +1185,14 @@ function stateJSON(totals) {
   const row = (i, active) => {
     const pid = S.draft.slots[i]; if (!pid) return null;
     const p = PBYID[pid];
-    return { slot: i + 1, name: p.name, team: p.team, pos: active ? SLOTS[i] : (S.positions[pid] || null), active };
+    return { slot: i + 1, name: p.name, team: p.team, pos: p.pos, price_m: p.price, active };
   };
   const errs = validation(S.draft.slots);
   return {
     user_id: S.uid, username: S.profile?.manager_name || null, team_name: S.profile?.team_name || null, squad_locked: isLocked(),
     squad: { starters: [0,1,2,3,4].map(i => row(i, true)).filter(Boolean), bench: [5,6].map(i => row(i, false)).filter(Boolean) },
     validation_status: { total_players: S.draft.slots.filter(Boolean).length, max_per_team_compliant: !errs.includes(TEAM_ERR), errors: errs },
+    budget_m: BUDGET, spent_m: squadCost(S.draft.slots),
     total_points: squadPoints(S.draft.slots, totals),
   };
 }
@@ -1066,36 +1205,38 @@ function renderMarket(totals) {
     hint.hidden = false;
     hint.innerHTML = `<span>Adding to the <b>${SLOTS[S.target] === "BENCH" ? "bench" : SLOTS[S.target]}</b> slot.</span><button class="linkbtn" data-act="untarget">Clear</button>`;
   } else hint.hidden = true;
+  const left = BUDGET - squadCost(S.draft.slots);
   const rows = PLAYERS.filter(p => {
-    const pos = S.positions[p.id];
-    if (fp === "NONE" ? !!pos : fp !== "ALL" && pos !== fp) return false;
+    if (fp !== "ALL" && p.pos !== fp) return false;
     if (ft !== "ALL" && p.team !== ft) return false;
     if (q && !slug(p.name).includes(q)) return false;
     return true;
-  }).sort((a, b) => totals[b.id].pts - totals[a.id].pts || a.team.localeCompare(b.team) || a.name.localeCompare(b.name));
+  }).sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || totals[b.id].pts - totals[a.id].pts || a.name.localeCompare(b.name));
   $("mkt").innerHTML = rows.length ? rows.map(p => {
-    const t = TEAM[p.team], pos = S.positions[p.id];
+    const t = TEAM[p.team];
     const inSquad = S.draft.slots.includes(p.id);
     const teamFull = !inSquad && (tc[p.team] || 0) >= MAX_PER_TEAM;
     const full = !inSquad && S.draft.slots.every(Boolean);
     let btn;
     if (inSquad) btn = `<button class="addbtn in" disabled>In squad</button>`;
     else if (locked) btn = `<button class="addbtn" disabled>Locked</button>`;
+    else if (p.price == null) btn = `<button class="addbtn" disabled title="No price yet">No price</button>`;
+    else if (!full && p.price > left) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="Costs ${fmtM(p.price)}, you have ${fmtM(left)} left">Over budget</button>`;
     else if (teamFull) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="${TEAM_ERR}">2/2 team</button>`;
     else btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" ${full ? "disabled" : ""} aria-label="Add ${esc(p.name)}">Add</button>`;
-    const posCell = S.owner
-      ? `<span class="poswrap"><select class="posselect" data-act="pos" data-pid="${p.id}" aria-label="Position for ${esc(p.name)}"><option value="">—</option>${ROLES.map(r => `<option ${pos === r ? "selected" : ""}>${r}</option>`).join("")}</select><button class="adjbtn" type="button" data-act="adj" data-pid="${p.id}" title="Add or remove points for ${esc(p.name)}" aria-label="Adjust points for ${esc(p.name)}">±</button></span>`
-      : `<span class="pos ${pos ? "" : "none"}">${pos || "—"}</span>`;
+    const posCell = `<span class="poswrap"><span class="pos ${p.pos ? "pos-" + p.pos : "none"}">${p.pos || "—"}</span>${S.owner ? `<button class="adjbtn" type="button" data-act="adj" data-pid="${p.id}" title="Add or remove points for ${esc(p.name)}" aria-label="Adjust points for ${esc(p.name)}">±</button>` : ""}</span>`;
+    const priceCell = p.price != null ? `<b class="price">${fmtM(p.price)}</b><small class="rating">Rating ${p.rating}</small>` : `<span class="pos none">No price</span>`;
     const bonus = totals[p.id].bonus;
     const ptsCell = `${totals[p.id].pts}${bonus ? `<span class="adjmark" title="Includes ${bonus > 0 ? "+" : ""}${bonus} from organizer adjustments">${bonus > 0 ? "+" : ""}${bonus} adj</span>` : ""}`;
     return `<tr class="${inSquad ? "mine" : ""}">
       <td><span class="pname">${esc(p.name)}${p.note ? `<small>${esc(p.note)}</small>` : ""}</span></td>
       <td class="tname" style="--team:${t.color}"><span class="tdot"></span>${esc(p.team)}</td>
       <td>${posCell}</td>
+      <td class="r num">${priceCell}</td>
       <td class="r num gold">${ptsCell}</td>
       <td class="r num">${n ? Math.round((c[p.id] || 0) / n * 100) : 0}%</td>
       <td class="r">${btn}</td></tr>`;
-  }).join("") : `<tr class="empty-row"><td colspan="6">No players match these filters.</td></tr>`;
+  }).join("") : `<tr class="empty-row"><td colspan="7">No players match these filters.</td></tr>`;
 }
 function renderMatches() {
   if (S.openEditor) return; // keep typed values while editing
