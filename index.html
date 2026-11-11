@@ -540,7 +540,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
 
   <section id="view-managers" data-viewpanel="managers" hidden>
     <h2 class="sec">Managers</h2>
-    <p class="sub">Only organizers see this page. Approve each manager once they've paid the entry fee. Until then they can't pick a squad, and they don't appear on the league table.</p>
+    <p class="sub">Only organizers see this page. Accept each manager here. Until they're accepted they can't pick a squad, and they don't appear on the league table.</p>
     <div class="mgr-summary" id="mgr-summary"></div>
     <div class="mgr-groups" id="mgr-list"></div>
   </section>
@@ -575,7 +575,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
         <h3>Accounts &amp; saving</h3>
         <ul>
           <li>You sign in with Google. Your team and squad are saved to your account and follow you to any device.</li>
-          <li>Entry is paid. After you create your team, an organizer approves you once you've paid. Only approved managers pick squads and appear on the table.</li>
+          <li>After you create your team, an organizer accepts you. Only accepted managers pick squads and appear on the table.</li>
           <li>Selection % is the share of complete squads that include a player.</li>
           <li>The league organizer enters each result, scorers, cards and goalkeepers after the final whistle. Points update for everyone at once.</li>
           <li>Positions are set by the organizer. A player without a position can fill any slot.</li>
@@ -726,7 +726,7 @@ async function signOut() {
   await S.sb.auth.signOut();
 }
 
-/* ---------- Approval (paid entry) ---------- */
+/* ---------- Approval ---------- */
 let waitChannel = null, waitTimer = null;
 function routeByStatus() {
   if (S.profile?.status === "approved") { stopWaitWatch(); return enterApp(); }

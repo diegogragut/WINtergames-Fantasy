@@ -1,4 +1,4 @@
--- WINter Fantasy: entry approval (paid entry).
+-- WINter Fantasy: entry approval.
 -- Run once in Supabase → SQL Editor (after schema.sql and 002).
 -- New managers start as "pending". Only organizers can approve or reject them,
 -- and only approved managers can save a squad.
