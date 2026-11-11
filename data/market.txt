@@ -55,6 +55,7 @@
 5 | Hacha Mango | CB
 5 | Martin Castro | CB
 5 | Pipe Bersoza | ST
+5 | Andres Rucavado | GK
 4 | Antonio Fernandez | CB
 4 | Diego Gutierrez | GK
 4 | Franco Hernandez | CB
@@ -63,6 +64,7 @@
 4 | Emiliano Crivelli | CB
 4 | Alessandro de Carlo | CB
 4 | Felipe Volio | CB
+4 | Nicolas Rivera | CB
 4 | Felipe Coronas | ST
 4 | Andres Soto | ST
 4 | Ignacio Rivera | ST
@@ -100,3 +102,4 @@
 2 | David Cascante | CB
 2 | Jose Miguel | GK
 2 | Luis Fernando Cedeno | CB
+2 | Daniel Bolanos | GK

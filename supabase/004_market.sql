@@ -40,6 +40,7 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('limon-2000--felipe-campos', 'GK', 5, 8),
   ('limon-2000--felipe-pena', 'ST', 8, 17),
   ('limon-2000--gianluca-fonseca', 'CB', 5, 8),
+  ('limon-2000--nicolas-rivera', 'CB', 4, 6),
   ('limon-2000--santiago-jimenez', 'ST', 6, 10),
   ('limon-2000--santiago-mena', 'CB', 3, 4),
   ('ayotazo-fc--alan-woodbridge', 'CB', 8, 17),
@@ -54,11 +55,13 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('sin-pulmon--alberto-pacheco', 'ST', 5, 8),
   ('sin-pulmon--alessandro-de-carlo', 'CB', 4, 6),
   ('sin-pulmon--antonio-fernandez', 'CB', 4, 6),
+  ('sin-pulmon--daniel-bolanos', 'GK', 2, 2),
   ('sin-pulmon--diego-granados', 'ST', 5, 8),
   ('sin-pulmon--emiliano-mendez', 'ST', 3, 4),
   ('sin-pulmon--ignacio-garnier', 'ST', 3, 4),
   ('sin-pulmon--julian-garnier', 'ST', 3, 4),
   ('sin-pulmon--sebastian-madrigal', 'CB', 5, 8),
+  ('sin-pulmon--felipe-volio', 'CB', 4, 6),
   ('zopilotes-fc--alejandro-soto', 'CB', 3, 4),
   ('zopilotes-fc--andres-rodriguez', 'CB', 2, 2),
   ('zopilotes-fc--antonio-carballo', 'CB', 2, 2),
@@ -74,13 +77,14 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('guadamuz--oscar-saborio', 'CB', 5, 8),
   ('guadamuz--raymond-semaan', 'CB', 6, 10),
   ('guadamuz--sebastian-solera', 'CB', 3, 4),
+  ('jogobonito--andres-rucavado', 'GK', 5, 8),
   ('jogobonito--ian-goldberg', 'ST', 10, 25),
   ('jogobonito--ignacio-child', 'CB', 10, 25),
   ('jogobonito--javier-sanabria', 'CB', 7, 13),
   ('jogobonito--luciano-soto', 'ST', 9, 21),
   ('jogobonito--randy-xirinachs', 'GK', 5, 8),
   ('limon-stars--andres-soto', 'ST', 4, 6),
-  ('limon-stars--antonio-jimenez', 'ST', 9, 21),
+  ('limon-stars--toto-jay', 'ST', 8, 17),
   ('limon-stars--emilio-atmella', 'CB', 7, 13),
   ('limon-stars--eric-brenes', 'CB', 5, 8),
   ('limon-stars--luciano-segnini', 'ST', 5, 8),
@@ -112,6 +116,9 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('pasion-fc--pipe-bersoza', 'ST', 5, 8),
   ('pasion-fc--roberto-zamora', 'ST', 8, 17)
 on conflict (player_id) do update set pos = excluded.pos, rating = excluded.rating, price = excluded.price;
+
+-- The second Antonio Jimenez (Limon Stars) is listed as Toto Jay.
+delete from public.player_prices where player_id = 'limon-stars--antonio-jimenez';
 
 -- Squad rules: max 2 per WINter team, no duplicates, every pick priced,
 -- starters in the right position, total cost within 100M, only complete squads lock.

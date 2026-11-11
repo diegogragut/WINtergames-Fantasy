@@ -605,11 +605,11 @@ const TEAMS = [
   ["La Granja FC","LGR",["David Cascante","David Sandi","Diego Saldana","Dylan Alfaro","Felipe Coronas","Gabriel Soto","Emiliano Guier","Jan Saravia","Jose Miguel","Kai Andre"]],
   ["Limon 2000","L2K",["Alejandro Ulloa","Andres Quesada","Diego Orozco","Felipe Campos","Felipe Pena","Gianluca Fonseca","Nicolas Rivera","Santiago Jimenez","Santiago Mena"]],
   ["Ayotazo FC","AYO",["Alan Woodbridge","Alejandro Madrigal","Antonio Jimenez","Ayote","Emiliano Crivelli","Ignacio Bogantes","Matias Alfaro","Sergio Sauma"]],
-  ["Sin Pulmón","SPU",["Gafas","Alberto Pacheco","Alessandro de Carlo","Antonio Fernandez","Daniel Bolanos","Diego Granados","Emiliano Mendez","Ignacio Garnier","Julian Garnier","Sebastian Madrigal"]],
+  ["Sin Pulmón","SPU",["Gafas","Alberto Pacheco","Alessandro de Carlo","Antonio Fernandez","Daniel Bolanos","Diego Granados","Emiliano Mendez","Ignacio Garnier","Julian Garnier","Sebastian Madrigal","Felipe Volio"]],
   ["Zopilotes FC","ZOP",["Alejandro Soto","Andres Rodriguez","Antonio Carballo","Daniel Coto","Ignacio Jaramillo","Julian Regueyra","Luis Fernando Cedeno","Martin Salom"]],
   ["Guadamuz","GDZ",["Emilio Artavia","Felipe Ferraro","Jupa Popi","Luis Carlos","Oscar Saborio","Raymond Semaan","Sebastian Solera"]],
   ["JogoBonito","JOG",["Andres Rucavado","Ian Goldberg","Ignacio Child","Javier Sanabria","Luciano Soto","Randy Xirinachs"]],
-  ["Limon Stars","LST",["Andres Soto","Antonio Jimenez","Emilio Atmella","Eric Brenes","Luciano Segnini","Patrick van der Laat"]],
+  ["Limon Stars","LST",["Andres Soto","Toto Jay|Antonio Jimenez","Emilio Atmella","Eric Brenes","Luciano Segnini","Patrick van der Laat"]],
   ["Brasimoreros","BRA",["Agustin Pacheco|Captain","Eduardo Odio","Julian Segura","Marco Olivo","Martin Castro","Stefan Matzen","Tomas Quijano"]],
   ["Guaraní FC","GUR",["Alberto Jimenez","Alessio Riggioni","Bogis","Diego Quiros","Diego Ruiz","Emiliano Silva","Ignacio Rivera","Juanpi Chavarria","Nono Guzman","Ruben Garita"]],
   ["Pasión FC","PAS",["Campanazo","Franco Hernandez","Garcia","Gaza","Hacha Mango","Matias Quiros","Mosquito","Pipe Bersoza","Roberto Zamora"]],
@@ -718,6 +718,7 @@ const MARKET = {
   "hacha-mango": ["CB", 5],
   "martin-castro": ["CB", 5],
   "pipe-bersoza": ["ST", 5],
+  "andres-rucavado": ["GK", 5],
   "antonio-fernandez": ["CB", 4],
   "diego-gutierrez": ["GK", 4],
   "franco-hernandez": ["CB", 4],
@@ -726,6 +727,7 @@ const MARKET = {
   "emiliano-crivelli": ["CB", 4],
   "alessandro-de-carlo": ["CB", 4],
   "felipe-volio": ["CB", 4],
+  "nicolas-rivera": ["CB", 4],
   "felipe-coronas": ["ST", 4],
   "andres-soto": ["ST", 4],
   "ignacio-rivera": ["ST", 4],
@@ -762,7 +764,8 @@ const MARKET = {
   "gabriel-soto": ["CB", 2],
   "david-cascante": ["CB", 2],
   "jose-miguel": ["GK", 2],
-  "luis-fernando-cedeno": ["CB", 2]
+  "luis-fernando-cedeno": ["CB", 2],
+  "daniel-bolanos": ["GK", 2]
 };
 PLAYERS.forEach(p => {
   const m = MARKET[slug(p.name)];
