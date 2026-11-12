@@ -178,7 +178,7 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .swapbtn { position: absolute; top: -4px; left: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--frost); color: var(--frost-ink); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0; }
 .swapbtn.on { background: var(--gold); box-shadow: 0 0 0 3px rgba(255, 203, 92, .35); }
 .token.swapto { border: 3px solid var(--gold) !important; box-shadow: 0 0 0 4px rgba(255, 203, 92, .45) !important; cursor: pointer; }
-.lockpanel { margin-bottom: 18px; }
+.lockpanel { margin-bottom: 18px; display: grid; gap: 10px; }
 .lockrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .lockstate { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px; }
 .capline { display: flex; align-items: center; gap: 10px; font-size: 13px; }
@@ -622,7 +622,7 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
           <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
-          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone.</li>
+          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone, and can close the transfer market on its own: then nobody can buy or sell players, but swaps with the bench and captain changes still work.</li>
           <li>Only complete squads score. Each match is scored with your squad exactly as it was at that match's kick-off, so changes made later only count from the next match.</li>
         </ul>
       </div>
@@ -849,6 +849,8 @@ const S = {
   loadedMine: false, dirty: false, saving: false,
   target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
   lockMode: "auto",       // auto (locks at first kick-off) | locked | open — set by organizers
+  marketMode: "open",     // open | locked — transfer market (buying/selling), set by organizers
+  confirmMarket: null,
   swapFrom: null,         // bench slot index being swapped
   previewUid: null,       // manager whose squad is open on the league table
   openRoster: null,       // match whose team rosters are open on the Matches tab
@@ -869,6 +871,9 @@ const pastDeadline = () => Date.now() >= DEADLINE.getTime();
 // Squads are open until the first kick-off, unless an organizer locked or unlocked them for everyone.
 const squadsOpen = () => S.lockMode === "locked" ? false : S.lockMode === "open" ? true : !pastDeadline();
 const isLocked = () => S.draft.locked || !squadsOpen();
+const marketOpen = () => S.marketMode !== "locked";
+const canTransfer = () => !isLocked() && marketOpen(); // buy/sell players (swaps and captain only need !isLocked())
+const MARKET_MSG = "The transfer market is closed, so players can't be bought or sold right now. You can still swap with your bench and change captain.";
 function lockText() {
   if (S.lockMode === "locked") return "Squads are locked by the organizer. No changes until they unlock them.";
   if (S.lockMode === "open") return pastDeadline() ? "The organizer opened squads for changes. Save before they lock them again." : "Squads are open for changes.";
@@ -1049,7 +1054,23 @@ function renderLockPanel() {
   else if (c === "open") btns = `<span>Unlock every squad? Everyone can change players and captain until you lock again.</span><button class="btn ok" data-act="lockmode-go" data-mode="open">Yes, unlock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
   else btns = (open ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : `<button class="btn ok" data-act="lockmode" data-mode="open">Unlock squads for everyone</button>`)
     + (S.lockMode !== "auto" && !pastDeadline() ? `<button class="btn" data-act="lockmode-go" data-mode="auto">Back to automatic</button>` : "");
-  setHTML("lockpanel", `<div class="lockrow"><div><span class="eyebrow">Squad lock</span><div class="lockstate">${state}<span class="fine">${esc(how)}</span></div></div><div class="actions">${btns}</div></div><p class="err" id="lock-err" hidden></p>`);
+  const mOpen = marketOpen(), mc = S.confirmMarket;
+  const mState = mOpen ? `<span class="pill ok">Market open</span>` : `<span class="pill lock">Market closed</span>`;
+  const mHow = mOpen ? "Managers can buy and sell players while squads are open." : "Nobody can buy or sell players. Swaps with the bench and captain changes still work while squads are open.";
+  let mBtns;
+  if (mc === "locked") mBtns = `<span>Close the transfer market? Nobody can buy or sell players until you open it.</span><button class="btn danger" data-act="market-go" data-mode="locked">Yes, close the market</button><button class="btn" data-act="market-cancel">Cancel</button>`;
+  else if (mc === "open") mBtns = `<span>Open the transfer market? Managers can buy and sell players while squads are open.</span><button class="btn ok" data-act="market-go" data-mode="open">Yes, open the market</button><button class="btn" data-act="market-cancel">Cancel</button>`;
+  else mBtns = mOpen ? `<button class="btn danger" data-act="market" data-mode="locked">Lock transfer market</button>` : `<button class="btn ok" data-act="market" data-mode="open">Unlock transfer market</button>`;
+  setHTML("lockpanel", `<div class="lockrow"><div><span class="eyebrow">Squad lock</span><div class="lockstate">${state}<span class="fine">${esc(how)}</span></div></div><div class="actions">${btns}</div></div>
+    <div class="lockrow"><div><span class="eyebrow">Transfer market</span><div class="lockstate">${mState}<span class="fine">${esc(mHow)}</span></div></div><div class="actions">${mBtns}</div></div>
+    <p class="err" id="lock-err" hidden></p>`);
+}
+async function setMarketMode(mode) {
+  const { error } = await S.sb.rpc("set_market_mode", { mode });
+  S.confirmMarket = null;
+  if (error) { renderLockPanel(); $("lock-err").textContent = "Couldn't change the transfer market: " + error.message; $("lock-err").hidden = false; return; }
+  S.marketMode = mode;
+  await loadAll(); render();
 }
 async function setLockMode(mode) {
   const { error } = await S.sb.rpc("set_lock_mode", { mode });
@@ -1188,13 +1209,14 @@ async function loadAll() {
     S.sb.from("match_stats").select("*"),
     S.sb.from("positions").select("*"),
     S.sb.from("player_adjustments").select("*").order("created_at"),
-    S.sb.from("league_settings").select("lock_mode").eq("id", 1).maybeSingle(),
+    S.sb.from("league_settings").select("lock_mode, market_mode").eq("id", 1).maybeSingle(),
     S.sb.from("squad_snapshots").select("match_id, user_id, slots, captain"),
     S.sb.from("snapshot_runs").select("match_id"),
   ]);
   const err = pr.error || sq.error || st.error || po.error;
   S.adjust = ad.error ? [] : ad.data; // older databases without the table still load
   S.lockMode = ls.error || !ls.data ? "auto" : ls.data.lock_mode;
+  S.marketMode = ls.error || !ls.data ? "open" : (ls.data.market_mode || "open");
   S.runs = new Set(ru.error ? [] : ru.data.map(r => r.match_id));
   S.snaps = {};
   (sn.error ? [] : sn.data).forEach(r => {
@@ -1224,6 +1246,7 @@ async function loadAll() {
 function setMsg(text, kind = "err") { S.msg = text ? { text, kind } : null; }
 function addPlayer(pid) {
   if (isLocked()) return;
+  if (!marketOpen()) { setMsg(MARKET_MSG); render(); return; }
   const d = S.draft;
   if (d.slots.includes(pid)) return;
   const p = PBYID[pid], team = p.team;
@@ -1243,6 +1266,7 @@ function addPlayer(pid) {
 }
 function removeSlot(i) {
   if (isLocked()) return;
+  if (!marketOpen()) { setMsg(MARKET_MSG); render(); return; }
   if (S.draft.slots[i] === S.draft.captain) S.draft.captain = null;
   S.draft.slots[i] = null; S.dirty = true; S.target = i; setMsg(null); S.confirmLock = false;
   render();
@@ -1272,7 +1296,7 @@ async function save(lock = false) {
   if (error) {
     const m = error.message || "";
     if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
-    else if (m.includes("Over budget") || m.includes("slot") || m.includes("price") || m.includes("captain")) setMsg(m);
+    else if (m.includes("Over budget") || m.includes("slot") || m.includes("price") || m.includes("captain") || m.includes("market")) setMsg(m);
     else if (m.includes("row-level security")) { S.lockMode = "locked"; setMsg("Squads are locked, so changes can't be saved."); }
     else setMsg("Couldn't save: " + m);
   } else {
@@ -1297,7 +1321,7 @@ function slotHTML(i, totals) {
       <div class="slot-name">Move here</div></div>`;
     }
     return `<div class="slot empty${tgt}">
-      <button class="token" data-act="target" data-slot="${i}" ${isLocked() ? "disabled" : ""} aria-label="Choose a player for the ${label} slot">${label}</button>
+      <button class="token" data-act="target" data-slot="${i}" ${!canTransfer() ? "disabled" : ""} aria-label="Choose a player for the ${label} slot">${label}</button>
       <div class="slot-name">${S.target === i ? "Pick from market" : "Open"}</div></div>`;
   }
   const p = PBYID[pid], t = TEAM[p.team], isCap = S.draft.captain === pid;
@@ -1313,7 +1337,7 @@ function slotHTML(i, totals) {
     ${shirt}
     <div class="slot-name">${esc(p.name)}</div>
     <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${isCap ? totals[pid].pts * 2 + " pts (2x)" : totals[pid].pts + " pts"}</span>` : ""}</div>
-    ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
+    ${!canTransfer() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
     ${role === "BENCH" && !isLocked() ? `<button class="swapbtn${S.swapFrom === i ? " on" : ""}" type="button" data-act="swap" data-slot="${i}" title="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starting ${p.pos}`}" aria-label="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starter`}">⇅</button>` : ""}
   </div>`;
 }
@@ -1354,12 +1378,15 @@ function renderSquad(totals) {
       <div class="budget-bar"><i style="width:${pct}%"></i></div>
     </div>`;
   const swapP = S.swapFrom != null ? PBYID[S.draft.slots[S.swapFrom]] : null;
+  const marketNote = !isLocked() && !marketOpen()
+    ? `<div class="capline need"><span><b>Transfer market closed.</b> You can't buy or sell players right now, but you can still swap with your bench (⇅) and change captain.</span></div>` : "";
   const hint = swapP && !isLocked()
     ? `<div class="capline need"><span>Swapping <b>${esc(swapP.name)}</b> (${swapP.pos}): tap a highlighted ${swapP.pos} on the pitch, or tap <b>⇅</b> again to cancel.</span></div>`
     : n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
   setHTML("status", `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
     ${budget}
+    ${marketNote}
     ${captainLine}
     ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
@@ -1411,6 +1438,7 @@ function renderMarket(totals) {
     let btn;
     if (inSquad) btn = `<button class="addbtn in" disabled>In squad</button>`;
     else if (locked) btn = `<button class="addbtn" disabled>Locked</button>`;
+    else if (!marketOpen()) btn = `<button class="addbtn" disabled title="The transfer market is closed">Market closed</button>`;
     else if (p.price == null) btn = `<button class="addbtn" disabled title="No price yet">No price</button>`;
     else if (!full && p.price > left) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="Costs ${fmtM(p.price)}, you have ${fmtM(left)} left">Over budget</button>`;
     else if (teamFull) btn = `<button class="addbtn" data-act="add" data-pid="${p.id}" title="${TEAM_ERR}">2/2 team</button>`;
@@ -1673,6 +1701,9 @@ document.addEventListener("click", e => {
   else if (act === "lockmode") { S.confirmLockMode = b.dataset.mode; renderLockPanel(); }
   else if (act === "lockmode-cancel") { S.confirmLockMode = null; renderLockPanel(); }
   else if (act === "lockmode-go") setLockMode(b.dataset.mode);
+  else if (act === "market") { S.confirmMarket = b.dataset.mode; renderLockPanel(); }
+  else if (act === "market-cancel") { S.confirmMarket = null; renderLockPanel(); }
+  else if (act === "market-go") setMarketMode(b.dataset.mode);
   else if (act === "captain" && !isLocked()) { if (S.draft.captain !== b.dataset.pid) { S.draft.captain = b.dataset.pid; S.dirty = true; S.confirmLock = false; setMsg(null); } render(); }
   else if (act === "add") addPlayer(b.dataset.pid);
   else if (act === "save") save(false);
