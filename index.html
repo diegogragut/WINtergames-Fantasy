@@ -326,6 +326,29 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
 .btn.ok { background: var(--good); border-color: var(--good); color: var(--ink); }
 .mgr-empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 10px; padding: 14px; }
 
+/* League table squad preview */
+.lbteam { display: flex; align-items: flex-start; gap: 8px; background: none; border: 0; padding: 0; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.lbteam:hover span:last-child { color: var(--frost); }
+.lbteam .chev { color: var(--muted); width: 12px; flex: none; }
+.lbteam small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+tr.lbrow.open td { background: rgba(142, 214, 255, .06); border-bottom-color: transparent; }
+tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
+.pv { display: grid; gap: 10px; }
+.pv-pitch { border-radius: 10px; padding: 14px 6px; display: grid; gap: 12px; background: repeating-linear-gradient(180deg, var(--pitch) 0 32px, var(--pitch-2) 32px 64px); border: 1px solid var(--pitch-line); }
+.pv-row { display: flex; justify-content: space-around; gap: 6px; }
+.pv-bench { border: 1px dashed var(--line); border-radius: 10px; padding: 8px 6px; text-align: center; display: grid; gap: 6px; }
+.pv-slot { width: 104px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 3px; }
+.pv-shirt { position: relative; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--team, transparent); border: 2px solid rgba(255,255,255,.85); font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
+.pv-slot.empty .pv-shirt { background: rgba(7, 12, 34, .35); border: 2px dashed rgba(233, 238, 255, .4); color: var(--muted); }
+.pv-shirt .capc { width: 16px; height: 16px; font-size: 10px; }
+.pv-name { font-size: 12px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; background: rgba(7,12,34,.72); padding: 1px 5px; border-radius: 4px; }
+.pv-slot.empty .pv-name { background: transparent; color: var(--muted); font-weight: 500; }
+.pv-meta { font-size: 10px; color: var(--muted); }
+.pv-meta b { color: var(--gold); }
+.pv-foot { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.pv-foot b { color: var(--text); }
+.pv-empty { color: var(--muted); padding: 10px 4px; }
+
 /* Rules */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
 .rules .card { padding: 16px 18px; }
@@ -554,7 +577,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
 
   <section id="view-table" data-viewpanel="table" hidden>
     <h2 class="sec">League table</h2>
-    <p class="sub">Every manager in the league. Points come from the 5 starters of a complete squad.</p>
+    <p class="sub">Every manager in the league. Tap a team to see its squad. Points come from the 5 starters of a complete squad.</p>
     <div class="lb-grid">
       <div class="card"><div class="tablewrap" style="max-height:none">
         <table><thead><tr><th>#</th><th>Team</th><th>Manager</th><th class="r">Status</th><th class="r">Pts</th></tr></thead><tbody id="lb"></tbody></table>
@@ -814,6 +837,7 @@ const S = {
   target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
   lockMode: "auto",       // auto (locks at first kick-off) | locked | open — set by organizers
   swapFrom: null,         // bench slot index being swapped
+  previewUid: null,       // manager whose squad is open on the league table
   confirmLockMode: null,
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1456,17 +1480,49 @@ function renderTable(totals) {
   }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
   $("lb").innerHTML = rows.length ? rows.map((r, i) => {
     const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || !squadsOpen()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
-    return `<tr class="${r.p.id === S.uid ? "mine" : ""}">
+    const open = S.previewUid === r.p.id;
+    return `<tr class="lbrow${r.p.id === S.uid ? " mine" : ""}${open ? " open" : ""}">
       <td class="rank ${i === 0 && r.pts > 0 ? "top" : ""} num">${i + 1}</td>
-      <td class="pname">${esc(r.p.team_name)}${r.p.favorite_team ? `<small>Supports ${esc(r.p.favorite_team)}</small>` : ""}</td>
+      <td class="pname"><button class="lbteam" type="button" data-act="preview" data-uid="${r.p.id}" aria-expanded="${open}" aria-controls="pv-${r.p.id}"><span class="chev" aria-hidden="true">${open ? "▾" : "▸"}</span><span>${esc(r.p.team_name)}${r.p.favorite_team ? `<small>Supports ${esc(r.p.favorite_team)}</small>` : ""}</span></button></td>
       <td class="tname">${r.p.id === S.uid ? "You" : esc(r.p.manager_name)}</td>
       <td class="r">${status}</td>
-      <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`;
+      <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`
+      + (open ? `<tr class="pvrow" id="pv-${r.p.id}"><td colspan="5">${previewHTML(r.p, r.sq, totals)}</td></tr>` : "");
   }).join("") : `<tr class="empty-row"><td colspan="5">No teams yet.</td></tr>`;
   const top = PLAYERS.filter(p => totals[p.id].pts !== 0).sort((a, b) => totals[b.id].pts - totals[a.id].pts).slice(0, 12);
   $("topp").innerHTML = top.length ? top.map(p => `<tr><td><span class="pname">${esc(p.name)}<small>${esc(p.team)}</small></span></td>
     <td class="r num">${totals[p.id].g}</td><td class="r num">${totals[p.id].a}</td><td class="r num gold">${totals[p.id].pts}</td></tr>`).join("")
     : `<tr class="empty-row"><td colspan="4">Points appear after the first result on ${fmtDay(DEADLINE)}.</td></tr>`;
+}
+/* Squad preview on the league table: anyone can open any team. */
+function previewHTML(prof, sq, totals) {
+  const slots = (sq?.slots || []).concat(Array(7)).slice(0, 7);
+  if (!slots.some(Boolean)) return `<div class="pv-empty">${esc(prof.team_name)} hasn't saved any players yet.</div>`;
+  const cap = sq?.captain;
+  const card = (pid, role) => {
+    if (!pid) return `<div class="pv-slot empty"><div class="pv-shirt">${role}</div><div class="pv-name">Open</div></div>`;
+    const p = PBYID[pid], t = TEAM[p.team], isCap = pid === cap, bench = role === "SUB";
+    const pts = bench ? null : (totals[pid]?.pts || 0) * (isCap ? 2 : 1);
+    return `<div class="pv-slot${isCap ? " cap" : ""}" style="--team:${t.color}">
+      <div class="pv-shirt">${t.abbr}${isCap ? '<span class="capc" aria-label="Captain">C</span>' : ""}</div>
+      <div class="pv-name">${esc(p.name)}</div>
+      <div class="pv-meta">${p.pos} · ${p.price != null ? fmtM(p.price) : "—"}${pts != null ? ` · <b>${pts} pts${isCap ? " (2x)" : ""}</b>` : ""}</div>
+    </div>`;
+  };
+  const capName = cap && PBYID[cap] ? PBYID[cap].name : null;
+  return `<div class="pv">
+    <div class="pv-pitch">
+      <div class="pv-row">${card(slots[0], "GK")}</div>
+      <div class="pv-row">${card(slots[1], "CB")}${card(slots[2], "CB")}</div>
+      <div class="pv-row">${card(slots[3], "ST")}${card(slots[4], "ST")}</div>
+    </div>
+    <div class="pv-bench"><span class="eyebrow">Bench · 0 pts</span><div class="pv-row">${card(slots[5], "SUB")}${card(slots[6], "SUB")}</div></div>
+    <div class="pv-foot">
+      <span>Manager: <b>${esc(prof.manager_name)}</b></span>
+      <span>Captain: <b>${capName ? esc(capName) : "not picked"}</b></span>
+      <span>Value: <b class="num">${fmtM(squadCost(slots))}</b> of ${fmtM(BUDGET)}</span>
+    </div>
+  </div>`;
 }
 function renderWho() {
   const w = $("who");
@@ -1579,6 +1635,7 @@ document.addEventListener("click", e => {
   else if (act === "ed-save") saveResult(b.dataset.mid);
   else if (act === "ed-clear") clearResult(b.dataset.mid);
   else if (act === "edit-team") openTeamForm(true);
+  else if (act === "preview") { S.previewUid = S.previewUid === b.dataset.uid ? null : b.dataset.uid; renderTable(playerTotals()); }
   else if (act === "adj") openAdj(b.dataset.pid);
   else if (act === "adj-close") { S.adjPid = null; render(); }
   else if (act === "adj-quick") { $("adj-pts").value = b.dataset.v; $("adj-reason").focus(); }
