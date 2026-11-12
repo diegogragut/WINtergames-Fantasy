@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="utf-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>WINter Fantasy</title>
 <meta name="description" content="Fantasy league for the Winter Games 2026. Sign in with Google, create your team and pick your 7-player squad.">
@@ -145,7 +146,7 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
   border: 2px solid var(--pitch-line);
   padding: 26px 8px 28px; display: grid; gap: 22px;
 }
-.pitch::before { content: ""; position: absolute; left: 50%; top: -60px; width: 150px; height: 120px; transform: translateX(-50%); border: 2px solid var(--pitch-line); border-radius: 0 0 50% 50%; pointer-events: none; }
+.pitch::before { content: ""; position: absolute; left: calc(50% - 75px); top: -60px; width: 150px; height: 120px; border: 2px solid var(--pitch-line); border-radius: 0 0 50% 50%; pointer-events: none; }
 .pitch::after { content: ""; position: absolute; left: 0; right: 0; bottom: 34%; border-top: 2px solid var(--pitch-line); pointer-events: none; }
 .prow { position: relative; z-index: 1; display: flex; justify-content: space-around; gap: 8px; }
 .bench { margin: 0 16px 16px; border: 1px dashed var(--line); border-radius: 10px; padding: 12px 8px; }
@@ -157,9 +158,8 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
   width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
   border: 2px dashed rgba(233, 238, 255, .45); background: rgba(7, 12, 34, .35);
   font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .04em; color: var(--text);
-  transition: transform .15s ease, box-shadow .15s ease;
 }
-.slot.empty .token:hover:not(:disabled) { transform: scale(1.06); border-color: var(--frost); }
+.slot.empty .token:hover:not(:disabled) { border-color: var(--frost); }
 .slot.filled .token { border: 2px solid rgba(255,255,255,.85); background: var(--team, #456); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 .slot.target .token { box-shadow: 0 0 0 4px var(--frost); border-color: var(--frost); }
 .slot-name { font-weight: 600; font-size: 13px; line-height: 1.2; max-width: 116px; overflow-wrap: anywhere; background: rgba(7,12,34,.72); padding: 2px 6px; border-radius: 4px; }
@@ -171,14 +171,13 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .remove:hover { filter: brightness(1.15); }
 .token { position: relative; padding: 0; }
 .slot.filled button.token { cursor: pointer; }
-.slot.filled button.token:hover { transform: scale(1.05); }
+.slot.filled button.token:hover { box-shadow: 0 0 0 3px rgba(142, 214, 255, .45); }
 .capc { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--ink); border: 2px solid var(--ink); font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 1; display: grid; place-items: center; }
 .capc.static { position: static; flex: none; }
 .capline.need { color: var(--gold); }
 .swapbtn { position: absolute; top: -4px; left: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--frost); color: var(--frost-ink); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0; }
 .swapbtn.on { background: var(--gold); box-shadow: 0 0 0 3px rgba(255, 203, 92, .35); }
-.token.swapto { border: 2px solid var(--gold) !important; box-shadow: 0 0 0 4px rgba(255, 203, 92, .35); animation: swappulse 1.2s ease-in-out infinite; cursor: pointer; }
-@keyframes swappulse { 50% { box-shadow: 0 0 0 7px rgba(255, 203, 92, .12); } }
+.token.swapto { border: 3px solid var(--gold) !important; box-shadow: 0 0 0 4px rgba(255, 203, 92, .45) !important; cursor: pointer; }
 .lockpanel { margin-bottom: 18px; }
 .lockrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .lockstate { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px; }
@@ -215,7 +214,7 @@ details.json pre { background: var(--ink); border: 1px solid var(--line); border
 .linkbtn { background: none; border: 0; color: var(--frost); text-decoration: underline; padding: 0; }
 .tablewrap { overflow: auto; max-height: 640px; }
 table { width: 100%; border-collapse: collapse; }
-th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--line); z-index: 1; white-space: nowrap; }
+th { background: var(--panel); text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--line); z-index: 1; white-space: nowrap; }
 td { padding: 8px; border-bottom: 1px solid rgba(36, 48, 99, .6); vertical-align: middle; }
 tr.mine td { background: rgba(142, 214, 255, .06); }
 td.r, th.r { text-align: right; }
@@ -360,8 +359,8 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
 .ro-table th, .ro-table td { padding: 5px 6px; position: static; background: transparent; }
 .ro-table tr.keeper td { background: rgba(255, 203, 92, .07); }
 .ro-table .pname small { display: block; color: var(--gold); font-weight: 400; font-size: 10px; }
-.card { display: inline-grid; place-items: center; width: 11px; height: 15px; border-radius: 2px; font-size: 9px; font-weight: 700; color: var(--ink); margin-left: 2px; vertical-align: middle; }
-.card.y { background: var(--gold); } .card.r { background: var(--bad); }
+.cardicon { display: inline-grid; place-items: center; width: 11px; height: 15px; border-radius: 2px; font-size: 9px; font-weight: 700; color: var(--ink); margin-left: 2px; vertical-align: middle; }
+.cardicon.y { background: var(--gold); } .cardicon.r { background: var(--bad); }
 
 /* Rules */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
@@ -857,6 +856,13 @@ const S = {
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const $ = id => document.getElementById(id);
+// Replace an element's content only when it really changed, so background updates
+// (other managers saving) don't redraw the whole page and cause flicker or ghosting.
+function setHTML(el, html) {
+  if (typeof el === "string") el = $(el);
+  if (!el || el.__html === html) return;
+  el.innerHTML = html; el.__html = html;
+}
 const fmtDay = d => d.toLocaleDateString("en-US", { timeZone: "America/Costa_Rica", weekday: "long", month: "short", day: "numeric" });
 const fmtTime = d => d.toLocaleTimeString("en-GB", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
 const pastDeadline = () => Date.now() >= DEADLINE.getTime();
@@ -1043,7 +1049,7 @@ function renderLockPanel() {
   else if (c === "open") btns = `<span>Unlock every squad? Everyone can change players and captain until you lock again.</span><button class="btn ok" data-act="lockmode-go" data-mode="open">Yes, unlock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
   else btns = (open ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : `<button class="btn ok" data-act="lockmode" data-mode="open">Unlock squads for everyone</button>`)
     + (S.lockMode !== "auto" && !pastDeadline() ? `<button class="btn" data-act="lockmode-go" data-mode="auto">Back to automatic</button>` : "");
-  $("lockpanel").innerHTML = `<div class="lockrow"><div><span class="eyebrow">Squad lock</span><div class="lockstate">${state}<span class="fine">${esc(how)}</span></div></div><div class="actions">${btns}</div></div><p class="err" id="lock-err" hidden></p>`;
+  setHTML("lockpanel", `<div class="lockrow"><div><span class="eyebrow">Squad lock</span><div class="lockstate">${state}<span class="fine">${esc(how)}</span></div></div><div class="actions">${btns}</div></div><p class="err" id="lock-err" hidden></p>`);
 }
 async function setLockMode(mode) {
   const { error } = await S.sb.rpc("set_lock_mode", { mode });
@@ -1060,10 +1066,10 @@ function renderManagers() {
   const list = S.members || [];
   const pending = list.filter(m => m.status === "pending"), approved = list.filter(m => m.status === "approved"), rejected = list.filter(m => m.status === "rejected");
   badge.hidden = !pending.length; badge.textContent = pending.length;
-  $("mgr-summary").innerHTML = `
+  setHTML("mgr-summary", `
     <div class="warn"><span class="eyebrow">Waiting</span><b class="num">${pending.length}</b></div>
     <div class="ok"><span class="eyebrow">Approved</span><b class="num">${approved.length}</b></div>
-    <div class="bad"><span class="eyebrow">Not accepted</span><b class="num">${rejected.length}</b></div>`;
+    <div class="bad"><span class="eyebrow">Not accepted</span><b class="num">${rejected.length}</b></div>`);
   if (S.membersError) { $("mgr-list").innerHTML = `<p class="err">Couldn't load managers: ${esc(S.membersError)}</p>`; return; }
   const row = m => {
     const joined = new Date(m.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -1161,7 +1167,7 @@ async function enterApp() {
   if (S.profile?.status !== "approved") return; // loadAll sent them to the waiting page
   if (!S.channel) {
     let t = null;
-    const later = () => { clearTimeout(t); t = setTimeout(loadAll, 400); };
+    const later = () => { clearTimeout(t); t = setTimeout(loadAll, 1500); };
     S.channel = S.sb.channel("league")
       .on("postgres_changes", { event: "*", schema: "public", table: "squads" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "match_stats" }, later)
@@ -1312,11 +1318,11 @@ function slotHTML(i, totals) {
   </div>`;
 }
 function renderSquad(totals) {
-  $("pitch").innerHTML = `
+  setHTML("pitch", `
     <div class="prow">${slotHTML(0, totals)}</div>
     <div class="prow">${slotHTML(1, totals)}${slotHTML(2, totals)}</div>
-    <div class="prow">${slotHTML(3, totals)}${slotHTML(4, totals)}</div>`;
-  $("benchrow").innerHTML = slotHTML(5, totals) + slotHTML(6, totals);
+    <div class="prow">${slotHTML(3, totals)}${slotHTML(4, totals)}</div>`);
+  setHTML("benchrow", slotHTML(5, totals) + slotHTML(6, totals));
   $("sq-name").textContent = S.profile?.team_name || "";
   $("sq-manager").textContent = S.profile ? "Manager: " + S.profile.manager_name + (S.profile.favorite_team ? " · Supports " + S.profile.favorite_team : "") : "";
   $("mypts").textContent = managerPoints(S.uid, totals);
@@ -1351,14 +1357,14 @@ function renderSquad(totals) {
   const hint = swapP && !isLocked()
     ? `<div class="capline need"><span>Swapping <b>${esc(swapP.name)}</b> (${swapP.pos}): tap a highlighted ${swapP.pos} on the pitch, or tap <b>⇅</b> again to cancel.</span></div>`
     : n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
-  $("status").innerHTML = `
+  setHTML("status", `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
     ${budget}
     ${captainLine}
     ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
     <div class="deadline">${esc(lockText())}</div>
-    <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`;
+    <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`);
 }
 function stateJSON(totals) {
   const row = (i, active) => {
@@ -1397,7 +1403,7 @@ function renderMarket(totals) {
     if (fs === "price-asc") return (a.price ?? 999) - (b.price ?? 999) || byName;
     return byName;
   });
-  $("mkt").innerHTML = rows.length ? rows.map(p => {
+  setHTML("mkt", rows.length ? rows.map(p => {
     const t = TEAM[p.team];
     const inSquad = S.draft.slots.includes(p.id);
     const teamFull = !inSquad && (tc[p.team] || 0) >= MAX_PER_TEAM;
@@ -1421,14 +1427,14 @@ function renderMarket(totals) {
       <td class="r num gold">${ptsCell}</td>
       <td class="r num">${n ? Math.round((c[p.id] || 0) / n * 100) : 0}%</td>
       <td class="r">${btn}</td></tr>`;
-  }).join("") : `<tr class="empty-row"><td colspan="7">No players match these filters.</td></tr>`;
+  }).join("") : `<tr class="empty-row"><td colspan="7">No players match these filters.</td></tr>`);
 }
 function renderMatches() {
   if (S.openEditor) return; // keep typed values while editing
   const byDay = {};
   FIXTURES.forEach(f => (byDay[fmtDay(f.at)] ||= []).push(f));
   $("matches-sub").textContent = "12 matches, Nov 12 – Nov 23. Times are Costa Rica time. Tap Players to see both teams." + (S.owner ? " As organizer, open a match to enter its result." : "");
-  $("days").innerHTML = Object.entries(byDay).map(([day, list]) => `<div class="day"><h3>${esc(day)}</h3>${list.map(fixtureHTML).join("")}</div>`).join("");
+  setHTML("days", Object.entries(byDay).map(([day, list]) => `<div class="day"><h3>${esc(day)}</h3>${list.map(fixtureHTML).join("")}</div>`).join(""));
 }
 function fixtureHTML(f) {
   const s = S.stats[f.id], played = !!s;
@@ -1458,7 +1464,7 @@ function rosterHTML(f) {
       <table class="ro-table"><thead><tr><th>Player</th><th>Pos</th><th class="r">Price</th>${played ? '<th class="r">G</th><th class="r">A</th><th class="r">Cards</th><th class="r">Pts</th>' : ""}</tr></thead><tbody>
       ${list.map(p => {
         const e = played ? (s.ev[p.id] || {}) : {};
-        const cards = [e.y ? `<span class="card y" title="Yellow card">${e.y > 1 ? e.y : ""}</span>` : "", e.r ? `<span class="card r" title="Red card"></span>` : ""].join("");
+        const cards = [e.y ? `<span class="cardicon y" title="Yellow card">${e.y > 1 ? e.y : ""}</span>` : "", e.r ? `<span class="cardicon r" title="Red card"></span>` : ""].join("");
         const pts = mp[p.id] || 0;
         return `<tr${p.id === keeper ? ' class="keeper"' : ""}>
           <td class="pname">${esc(p.name)}${p.id === keeper ? '<small>In goal this match</small>' : ""}</td>
@@ -1521,7 +1527,7 @@ function renderTable(totals) {
     const n = slots.filter(Boolean).length;
     return { p, sq, n, pts: managerPoints(p.id, totals) };
   }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
-  $("lb").innerHTML = rows.length ? rows.map((r, i) => {
+  setHTML("lb", rows.length ? rows.map((r, i) => {
     const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || !squadsOpen()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
     const open = S.previewUid === r.p.id;
     return `<tr class="lbrow${r.p.id === S.uid ? " mine" : ""}${open ? " open" : ""}">
@@ -1531,11 +1537,11 @@ function renderTable(totals) {
       <td class="r">${status}</td>
       <td class="r num gold" style="font-size:18px">${r.pts}</td></tr>`
       + (open ? `<tr class="pvrow" id="pv-${r.p.id}"><td colspan="5">${previewHTML(r.p, r.sq, totals)}</td></tr>` : "");
-  }).join("") : `<tr class="empty-row"><td colspan="5">No teams yet.</td></tr>`;
+  }).join("") : `<tr class="empty-row"><td colspan="5">No teams yet.</td></tr>`);
   const top = PLAYERS.filter(p => totals[p.id].pts !== 0).sort((a, b) => totals[b.id].pts - totals[a.id].pts).slice(0, 12);
-  $("topp").innerHTML = top.length ? top.map(p => `<tr><td><span class="pname">${esc(p.name)}<small>${esc(p.team)}</small></span></td>
+  setHTML("topp", top.length ? top.map(p => `<tr><td><span class="pname">${esc(p.name)}<small>${esc(p.team)}</small></span></td>
     <td class="r num">${totals[p.id].g}</td><td class="r num">${totals[p.id].a}</td><td class="r num gold">${totals[p.id].pts}</td></tr>`).join("")
-    : `<tr class="empty-row"><td colspan="4">Points appear after the first result on ${fmtDay(DEADLINE)}.</td></tr>`;
+    : `<tr class="empty-row"><td colspan="4">Points appear after the first result on ${fmtDay(DEADLINE)}.</td></tr>`);
 }
 /* Squad preview on the league table: anyone can open any team. */
 function previewHTML(prof, sq, totals) {
@@ -1608,12 +1614,12 @@ function renderAdj(totals) {
   $("adj-name").textContent = p.name;
   $("adj-sub").textContent = `${p.team} · ${t.pts} pts total (${signed(t.bonus) || "0"} from adjustments, ${t.pts - t.bonus} from matches)`;
   const rows = S.adjust.filter(a => a.player_id === p.id);
-  $("adj-list").innerHTML = rows.length ? rows.map(a => `
+  setHTML("adj-list", rows.length ? rows.map(a => `
     <li><span class="pts ${a.points > 0 ? "plus" : "minus"}">${signed(a.points)}</span>
       <span class="why">${a.reason ? esc(a.reason) : '<span class="when">No reason given</span>'}</span>
       <span class="when">${new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
       <button class="linkbtn" type="button" data-act="adj-del" data-id="${a.id}">Remove</button></li>`).join("")
-    : `<li class="empty">No adjustments yet. Points here are added on top of goals, assists and results.</li>`;
+    : `<li class="empty">No adjustments yet. Points here are added on top of goals, assists and results.</li>`);
 }
 async function addAdj(e) {
   e.preventDefault();
@@ -1673,12 +1679,12 @@ document.addEventListener("click", e => {
   else if (act === "lock") { S.confirmLock = true; render(); }
   else if (act === "lock-cancel") { S.confirmLock = false; render(); }
   else if (act === "lock-confirm") save(true);
-  else if (act === "edit") { S.openEditor = null; renderMatches(); S.openEditor = b.dataset.mid; $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(f => f.id === S.openEditor)); }
+  else if (act === "edit") { S.openEditor = null; renderMatches(); S.openEditor = b.dataset.mid; $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(f => f.id === S.openEditor)); $("days").__html = null; }
   else if (act === "ed-cancel") { S.openEditor = null; renderMatches(); }
   else if (act === "ed-save") saveResult(b.dataset.mid);
   else if (act === "ed-clear") clearResult(b.dataset.mid);
   else if (act === "edit-team") openTeamForm(true);
-  else if (act === "roster") { S.openRoster = S.openRoster === b.dataset.mid ? null : b.dataset.mid; if (!S.openEditor) renderMatches(); else $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(x => x.id === b.dataset.mid)); }
+  else if (act === "roster") { S.openRoster = S.openRoster === b.dataset.mid ? null : b.dataset.mid; if (!S.openEditor) renderMatches(); else { $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(x => x.id === b.dataset.mid)); $("days").__html = null; } }
   else if (act === "preview") { S.previewUid = S.previewUid === b.dataset.uid ? null : b.dataset.uid; renderTable(playerTotals()); }
   else if (act === "adj") openAdj(b.dataset.pid);
   else if (act === "adj-close") { S.adjPid = null; render(); }
