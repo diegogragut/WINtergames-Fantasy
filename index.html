@@ -356,6 +356,7 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
 .ro-team { min-width: 0; overflow-x: auto; }
 .ro-team h4 { margin: 0 0 6px; font-family: var(--display); font-size: 18px; letter-spacing: .03em; display: flex; align-items: center; gap: 4px; }
 .ro-team h4 small { font-family: var(--body); font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.ro-team h4 .worth { color: var(--gold); font-weight: 700; }
 .ro-table th, .ro-table td { padding: 5px 6px; position: static; background: transparent; }
 .ro-table tr.keeper td { background: rgba(255, 203, 92, .07); }
 .ro-table .pname small { display: block; color: var(--gold); font-weight: 400; font-size: 10px; }
@@ -1453,7 +1454,7 @@ function rosterHTML(f) {
     const keeper = played ? s.gk[key] : "";
     const list = t.players.slice().sort((a, b) => (POS_ORDER[a.pos] ?? 9) - (POS_ORDER[b.pos] ?? 9) || a.name.localeCompare(b.name, "es"));
     return `<div class="ro-team">
-      <h4><span class="tdot" style="--team:${t.color}"></span>${esc(team)} <small>${t.players.length} players</small></h4>
+      <h4><span class="tdot" style="--team:${t.color}"></span>${esc(team)} <small>${t.players.length} players · worth <b class="worth">${fmtM(t.players.reduce((n, p) => n + (p.price || 0), 0))}</b></small></h4>
       <table class="ro-table"><thead><tr><th>Player</th><th>Pos</th><th class="r">Price</th>${played ? '<th class="r">G</th><th class="r">A</th><th class="r">Cards</th><th class="r">Pts</th>' : ""}</tr></thead><tbody>
       ${list.map(p => {
         const e = played ? (s.ev[p.id] || {}) : {};
