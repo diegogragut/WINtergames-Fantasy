@@ -175,6 +175,13 @@ h2.sec { font-family: var(--display); font-size: 26px; font-weight: 700; letter-
 .capc { position: absolute; right: -3px; bottom: -3px; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: var(--ink); border: 2px solid var(--ink); font-family: var(--display); font-weight: 700; font-size: 11px; line-height: 1; display: grid; place-items: center; }
 .capc.static { position: static; flex: none; }
 .capline.need { color: var(--gold); }
+.swapbtn { position: absolute; top: -4px; left: 18px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--frost); color: var(--frost-ink); font-weight: 700; font-size: 13px; line-height: 1; display: grid; place-items: center; padding: 0; }
+.swapbtn.on { background: var(--gold); box-shadow: 0 0 0 3px rgba(255, 203, 92, .35); }
+.token.swapto { border: 2px solid var(--gold) !important; box-shadow: 0 0 0 4px rgba(255, 203, 92, .35); animation: swappulse 1.2s ease-in-out infinite; cursor: pointer; }
+@keyframes swappulse { 50% { box-shadow: 0 0 0 7px rgba(255, 203, 92, .12); } }
+.lockpanel { margin-bottom: 18px; }
+.lockrow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.lockstate { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px; }
 .capline { display: flex; align-items: center; gap: 10px; font-size: 13px; }
 .capline.muted { color: var(--muted); }
 
@@ -328,7 +335,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
 .scoretable td:last-child { text-align: right; font-family: var(--display); font-size: 18px; font-weight: 700; }
 .pos-pts { color: var(--good); } .neg-pts { color: var(--bad); }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -561,6 +568,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
   <section id="view-managers" data-viewpanel="managers" hidden>
     <h2 class="sec">Managers</h2>
     <p class="sub">Only organizers see this page. Accept each manager here. Until they're accepted they can't pick a squad, and they don't appear on the league table.</p>
+    <div class="lockpanel" id="lockpanel"></div>
     <div class="mgr-summary" id="mgr-summary"></div>
     <div class="mgr-groups" id="mgr-list"></div>
   </section>
@@ -577,8 +585,9 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
           <li><strong>Captain (C):</strong> tap a player's shirt to make him captain. His points count double. You need a captain to save your squad. A captain on the bench scores 0, like any bench player.</li>
           <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
-          <li>Save as often as you like until the first kick-off. Lock early if you want it final.</li>
-          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. Only complete squads score.</li>
+          <li>Save as often as you like until the first kick-off. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
+          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone.</li>
+          <li>Only complete squads score.</li>
         </ul>
       </div>
       <div class="card">
@@ -801,13 +810,23 @@ const S = {
   draft: { slots: Array(7).fill(null), locked: false, captain: null },
   loadedMine: false, dirty: false, saving: false,
   target: null, msg: null, confirmLock: false, openEditor: null, editingTeam: false,
+  lockMode: "auto",       // auto (locks at first kick-off) | locked | open — set by organizers
+  swapFrom: null,         // bench slot index being swapped
+  confirmLockMode: null,
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const $ = id => document.getElementById(id);
 const fmtDay = d => d.toLocaleDateString("en-US", { timeZone: "America/Costa_Rica", weekday: "long", month: "short", day: "numeric" });
 const fmtTime = d => d.toLocaleTimeString("en-GB", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
 const pastDeadline = () => Date.now() >= DEADLINE.getTime();
-const isLocked = () => S.draft.locked || pastDeadline();
+// Squads are open until the first kick-off, unless an organizer locked or unlocked them for everyone.
+const squadsOpen = () => S.lockMode === "locked" ? false : S.lockMode === "open" ? true : !pastDeadline();
+const isLocked = () => S.draft.locked || !squadsOpen();
+function lockText() {
+  if (S.lockMode === "locked") return "Squads are locked by the organizer. No changes until they unlock them.";
+  if (S.lockMode === "open") return pastDeadline() ? "The organizer opened squads for changes. Save before they lock them again." : "Squads are open for changes.";
+  return pastDeadline() ? "Squads are locked. No changes until an organizer unlocks them." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`;
+}
 
 function showScreen(name) {
   ["loading","setup","login","team","wait","app"].forEach(n => $("screen-" + n).hidden = n !== name);
@@ -895,7 +914,7 @@ function showWait() {
   $("wait-team").textContent = p.team_name;
   $("wait-manager").textContent = p.manager_name;
   $("wait-email").textContent = S.user?.email || "";
-  $("wait-deadline").textContent = pastDeadline() ? "The tournament has started, so squads can no longer be picked." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}. Get approved before then to pick yours.`;
+  $("wait-deadline").textContent = !squadsOpen() ? "Squads are locked right now, so new squads can't be picked until an organizer unlocks them." : pastDeadline() ? "Squads are open for changes right now." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}. Get accepted before then to pick yours.`;
   $("wait-msg").hidden = true;
   showScreen("wait");
   startWaitWatch();
@@ -943,10 +962,29 @@ async function setMemberStatus(id, status) {
   if (S.profiles[id]) S.profiles[id].status = status;
   renderManagers(); render();
 }
+function renderLockPanel() {
+  const open = squadsOpen(), c = S.confirmLockMode;
+  const state = open ? `<span class="pill ok">Squads open</span>` : `<span class="pill lock">Squads locked</span>`;
+  const how = S.lockMode === "locked" ? "You locked squads for everyone." : S.lockMode === "open" ? "You unlocked squads for everyone." : pastDeadline() ? "Locked automatically at the first kick-off." : `Open until the first kick-off (${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}), then they lock automatically.`;
+  let btns;
+  if (c === "locked") btns = `<span>Lock every squad now? Nobody can change players or captain until you unlock.</span><button class="btn danger" data-act="lockmode-go" data-mode="locked">Yes, lock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
+  else if (c === "open") btns = `<span>Unlock every squad? Everyone can change players and captain until you lock again.</span><button class="btn ok" data-act="lockmode-go" data-mode="open">Yes, unlock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
+  else btns = (open ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : `<button class="btn ok" data-act="lockmode" data-mode="open">Unlock squads for everyone</button>`)
+    + (S.lockMode !== "auto" && !pastDeadline() ? `<button class="btn" data-act="lockmode-go" data-mode="auto">Back to automatic</button>` : "");
+  $("lockpanel").innerHTML = `<div class="lockrow"><div><span class="eyebrow">Squad lock</span><div class="lockstate">${state}<span class="fine">${esc(how)}</span></div></div><div class="actions">${btns}</div></div><p class="err" id="lock-err" hidden></p>`;
+}
+async function setLockMode(mode) {
+  const { error } = await S.sb.rpc("set_lock_mode", { mode });
+  S.confirmLockMode = null;
+  if (error) { renderLockPanel(); $("lock-err").textContent = "Couldn't change the lock: " + error.message; $("lock-err").hidden = false; return; }
+  S.lockMode = mode;
+  await loadAll(); render();
+}
 function renderManagers() {
   const nav = $("nav-managers"), badge = $("nav-badge");
   nav.hidden = !S.owner;
   if (!S.owner) return;
+  renderLockPanel();
   const list = S.members || [];
   const pending = list.filter(m => m.status === "pending"), approved = list.filter(m => m.status === "approved"), rejected = list.filter(m => m.status === "rejected");
   badge.hidden = !pending.length; badge.textContent = pending.length;
@@ -1058,20 +1096,23 @@ async function enterApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "positions" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "player_adjustments" }, later)
+      .on("postgres_changes", { event: "*", schema: "public", table: "league_settings" }, later)
       .subscribe();
   }
   showScreen("app"); showView(); render();
 }
 async function loadAll() {
-  const [pr, sq, st, po, ad] = await Promise.all([
+  const [pr, sq, st, po, ad, ls] = await Promise.all([
     S.sb.from("profiles").select("*"),
     S.sb.from("squads").select("*"),
     S.sb.from("match_stats").select("*"),
     S.sb.from("positions").select("*"),
     S.sb.from("player_adjustments").select("*").order("created_at"),
+    S.sb.from("league_settings").select("lock_mode").eq("id", 1).maybeSingle(),
   ]);
   const err = pr.error || sq.error || st.error || po.error;
   S.adjust = ad.error ? [] : ad.data; // older databases without the table still load
+  S.lockMode = ls.error || !ls.data ? "auto" : ls.data.lock_mode;
   if (err) { showNotice("Couldn't refresh the league: " + err.message); return; }
   hideNotice();
   S.profiles = Object.fromEntries(pr.data.map(r => [r.id, r]));
@@ -1145,7 +1186,7 @@ async function save(lock = false) {
     const m = error.message || "";
     if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
     else if (m.includes("Over budget") || m.includes("slot") || m.includes("price") || m.includes("captain")) setMsg(m);
-    else if (m.includes("row-level security")) setMsg(pastDeadline() ? "Squads locked at kick-off, so changes can't be saved." : "This squad is locked and can't be changed.");
+    else if (m.includes("row-level security")) { S.lockMode = "locked"; setMsg("Squads are locked, so changes can't be saved."); }
     else setMsg("Couldn't save: " + m);
   } else {
     S.draft.locked = row.locked; S.dirty = false; S.confirmLock = false;
@@ -1162,13 +1203,23 @@ function slotHTML(i, totals) {
   const tgt = S.target === i ? " target" : "";
   const label = role === "BENCH" ? "SUB" : role;
   if (!pid) {
+    const sw = S.swapFrom != null ? PBYID[S.draft.slots[S.swapFrom]] : null;
+    if (sw && i < 5 && SLOTS[i] === sw.pos && !isLocked()) {
+      return `<div class="slot empty">
+      <button class="token swapto" data-act="swap-to" data-slot="${i}" aria-label="Move ${esc(sw.name)} to the ${label} slot">${label}</button>
+      <div class="slot-name">Move here</div></div>`;
+    }
     return `<div class="slot empty${tgt}">
       <button class="token" data-act="target" data-slot="${i}" ${isLocked() ? "disabled" : ""} aria-label="Choose a player for the ${label} slot">${label}</button>
       <div class="slot-name">${S.target === i ? "Pick from market" : "Open"}</div></div>`;
   }
   const p = PBYID[pid], t = TEAM[p.team], isCap = S.draft.captain === pid;
   const capMark = isCap ? `<span class="capc" aria-hidden="true">C</span>` : "";
-  const shirt = isLocked()
+  const swapper = S.swapFrom != null ? PBYID[S.draft.slots[S.swapFrom]] : null;
+  const swapTarget = swapper && i < 5 && SLOTS[i] === swapper.pos && !isLocked();
+  const shirt = swapTarget
+    ? `<button class="token swapto" type="button" data-act="swap-to" data-slot="${i}" title="Swap ${esc(swapper.name)} in for ${esc(p.name)}" aria-label="Swap ${esc(swapper.name)} in for ${esc(p.name)}">${t.abbr}${capMark}</button>`
+    : isLocked()
     ? `<div class="token" ${isCap ? 'title="Captain"' : 'aria-hidden="true"'}>${t.abbr}${capMark}</div>`
     : `<button class="token" type="button" data-act="captain" data-pid="${pid}" title="${isCap ? "Captain (2x points)" : `Tap to make ${esc(p.name)} captain`}" aria-label="${isCap ? `${esc(p.name)} is captain` : `Make ${esc(p.name)} captain`}">${t.abbr}${capMark}</button>`;
   return `<div class="slot filled${tgt}${isCap ? " captain" : ""}" style="--team:${t.color}">
@@ -1176,6 +1227,7 @@ function slotHTML(i, totals) {
     <div class="slot-name">${esc(p.name)}</div>
     <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${isCap ? totals[pid].pts * 2 + " pts (2x)" : totals[pid].pts + " pts"}</span>` : ""}</div>
     ${isLocked() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
+    ${role === "BENCH" && !isLocked() ? `<button class="swapbtn${S.swapFrom === i ? " on" : ""}" type="button" data-act="swap" data-slot="${i}" title="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starting ${p.pos}`}" aria-label="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starter`}">⇅</button>` : ""}
   </div>`;
 }
 function renderSquad(totals) {
@@ -1193,15 +1245,14 @@ function renderSquad(totals) {
   const errs = validation(slots);
   let actions;
   if (isLocked()) {
-    actions = `<span class="pill lock">${S.draft.locked ? "Squad locked" : "Squads locked at kick-off"}</span>`;
+    actions = `<span class="pill lock">Squads locked</span>`;
   } else if (S.confirmLock) {
     actions = `<span>Lock this squad for the whole tournament? This can't be undone.</span>
       <button class="btn danger" data-act="lock-confirm" ${S.saving ? "disabled" : ""}>Yes, lock it</button>
       <button class="btn" data-act="lock-cancel">Cancel</button>`;
   } else {
     const noCap = !S.draft.captain;
-    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty || noCap ? "disabled" : ""} title="${noCap ? "Pick a captain first" : ""}">${S.saving ? "Saving…" : !S.dirty ? "Saved" : noCap ? "Pick a captain to save" : "Save squad"}</button>
-      <button class="btn" data-act="lock" ${errs.length || noCap || S.saving ? "disabled" : ""} title="${errs.length ? "Complete a valid 7-player squad first" : noCap ? "Pick a captain first" : ""}">Lock squad</button>`;
+    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty || noCap ? "disabled" : ""} title="${noCap ? "Pick a captain first" : ""}">${S.saving ? "Saving…" : !S.dirty ? "Saved" : noCap ? "Pick a captain to save" : "Save squad"}</button>`;
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
   const errLine = !S.msg ? errs.filter(e => !e.startsWith("Squad incomplete")).map(e => `<div class="err">${esc(e)}</div>`).join("") : "";
@@ -1215,14 +1266,17 @@ function renderSquad(totals) {
       <div class="budget-top"><span><b class="num">${fmtM(cost)}</b> of ${fmtM(BUDGET)} spent</span><span class="num">${left >= 0 ? fmtM(left) + " left" : fmtM(-left) + " over"}</span></div>
       <div class="budget-bar"><i style="width:${pct}%"></i></div>
     </div>`;
-  const hint = n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
+  const swapP = S.swapFrom != null ? PBYID[S.draft.slots[S.swapFrom]] : null;
+  const hint = swapP && !isLocked()
+    ? `<div class="capline need"><span>Swapping <b>${esc(swapP.name)}</b> (${swapP.pos}): tap a highlighted ${swapP.pos} on the pitch, or tap <b>⇅</b> again to cancel.</span></div>`
+    : n === 0 && !isLocked() ? `<div class="deadline">Tap an empty slot or press <b>Add</b> in the transfer market to start picking.</div>` : "";
   $("status").innerHTML = `
     <div class="status-row"><span class="count num">Players ${n}/7 selected</span><span class="deadline">Max 2 per WINter team</span><div class="chips">${chips}</div></div>
     ${budget}
     ${captainLine}
     ${hint}${msg}${errLine}
     <div class="actions">${actions}</div>
-    <div class="deadline">${pastDeadline() ? "The tournament is under way. Squads are final." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`}</div>
+    <div class="deadline">${esc(lockText())}</div>
     <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`;
 }
 function stateJSON(totals) {
@@ -1359,7 +1413,7 @@ function renderTable(totals) {
     return { p, sq, n, pts: squadPoints(slots, totals, sq?.captain) };
   }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
   $("lb").innerHTML = rows.length ? rows.map((r, i) => {
-    const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || pastDeadline()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
+    const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || !squadsOpen()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
     return `<tr class="${r.p.id === S.uid ? "mine" : ""}">
       <td class="rank ${i === 0 && r.pts > 0 ? "top" : ""} num">${i + 1}</td>
       <td class="pname">${esc(r.p.team_name)}${r.p.favorite_team ? `<small>Supports ${esc(r.p.favorite_team)}</small>` : ""}</td>
@@ -1389,6 +1443,7 @@ function renderWho() {
 }
 function render() {
   if (!S.profile) return;
+  if (isLocked()) S.swapFrom = null;
   const totals = playerTotals();
   renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals); renderAdj(totals); renderManagers();
 }
@@ -1459,7 +1514,18 @@ document.addEventListener("click", e => {
   const act = b.dataset.act;
   if (act === "target") { const i = +b.dataset.slot; S.target = S.target === i ? null : i; setMsg(null); render(); if (S.target != null && innerWidth <= 900) $("market").scrollIntoView({ behavior: "smooth", block: "start" }); }
   else if (act === "untarget") { S.target = null; render(); }
-  else if (act === "remove") removeSlot(+b.dataset.slot);
+  else if (act === "remove") { S.swapFrom = null; removeSlot(+b.dataset.slot); }
+  else if (act === "swap" && !isLocked()) { const i = +b.dataset.slot; S.swapFrom = S.swapFrom === i ? null : i; setMsg(null); render(); }
+  else if (act === "swap-to" && !isLocked() && S.swapFrom != null) {
+    const from = S.swapFrom, to = +b.dataset.slot, d = S.draft;
+    [d.slots[from], d.slots[to]] = [d.slots[to], d.slots[from]];
+    S.swapFrom = null; S.dirty = true; S.target = null;
+    setMsg(`${PBYID[d.slots[to]].name} is now starting.` + (d.slots[from] ? ` ${PBYID[d.slots[from]].name} moved to the bench.` : ""), "ok");
+    render();
+  }
+  else if (act === "lockmode") { S.confirmLockMode = b.dataset.mode; renderLockPanel(); }
+  else if (act === "lockmode-cancel") { S.confirmLockMode = null; renderLockPanel(); }
+  else if (act === "lockmode-go") setLockMode(b.dataset.mode);
   else if (act === "captain" && !isLocked()) { if (S.draft.captain !== b.dataset.pid) { S.draft.captain = b.dataset.pid; S.dirty = true; S.confirmLock = false; setMsg(null); } render(); }
   else if (act === "add") addPlayer(b.dataset.pid);
   else if (act === "save") save(false);
