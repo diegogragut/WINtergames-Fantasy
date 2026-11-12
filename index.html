@@ -349,6 +349,19 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
 .pv-foot b { color: var(--text); }
 .pv-empty { color: var(--muted); padding: 10px 4px; }
 
+/* Match rosters */
+.fx-act { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.roster { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 760px) { .roster { grid-template-columns: minmax(0, 1fr); } }
+.ro-team { min-width: 0; overflow-x: auto; }
+.ro-team h4 { margin: 0 0 6px; font-family: var(--display); font-size: 18px; letter-spacing: .03em; display: flex; align-items: center; gap: 4px; }
+.ro-team h4 small { font-family: var(--body); font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.ro-table th, .ro-table td { padding: 5px 6px; position: static; background: transparent; }
+.ro-table tr.keeper td { background: rgba(255, 203, 92, .07); }
+.ro-table .pname small { display: block; color: var(--gold); font-weight: 400; font-size: 10px; }
+.card { display: inline-grid; place-items: center; width: 11px; height: 15px; border-radius: 2px; font-size: 9px; font-weight: 700; color: var(--ink); margin-left: 2px; vertical-align: middle; }
+.card.y { background: var(--gold); } .card.r { background: var(--bad); }
+
 /* Rules */
 .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
 .rules .card { padding: 16px 18px; }
@@ -838,6 +851,7 @@ const S = {
   lockMode: "auto",       // auto (locks at first kick-off) | locked | open — set by organizers
   swapFrom: null,         // bench slot index being swapped
   previewUid: null,       // manager whose squad is open on the league table
+  openRoster: null,       // match whose team rosters are open on the Matches tab
   confirmLockMode: null,
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -1412,7 +1426,7 @@ function renderMatches() {
   if (S.openEditor) return; // keep typed values while editing
   const byDay = {};
   FIXTURES.forEach(f => (byDay[fmtDay(f.at)] ||= []).push(f));
-  $("matches-sub").textContent = "12 matches, Nov 12 – Nov 23. Times are Costa Rica time." + (S.owner ? " As organizer, open a match to enter its result." : "");
+  $("matches-sub").textContent = "12 matches, Nov 12 – Nov 23. Times are Costa Rica time. Tap Players to see both teams." + (S.owner ? " As organizer, open a match to enter its result." : "");
   $("days").innerHTML = Object.entries(byDay).map(([day, list]) => `<div class="day"><h3>${esc(day)}</h3>${list.map(fixtureHTML).join("")}</div>`).join("");
 }
 function fixtureHTML(f) {
@@ -1424,10 +1438,38 @@ function fixtureHTML(f) {
       <div class="fx-team home">${esc(f.home)} <span class="tdot" style="--team:${th.color}"></span></div>
       <div class="fx-score num ${played ? "" : "vs"}">${played ? `${+s.hs} – ${+s.as}<div class="fx-badge">Full time</div>` : "vs"}</div>
       <div class="fx-team"><span class="tdot" style="--team:${ta.color}"></span> ${esc(f.away)}</div>
-      <div class="fx-act">${S.owner ? `<button class="btn" data-act="edit" data-mid="${f.id}">${played ? "Edit result" : "Enter result"}</button>` : ""}</div>
+      <div class="fx-act"><button class="btn" data-act="roster" data-mid="${f.id}" aria-expanded="${S.openRoster === f.id}">${S.openRoster === f.id ? "Hide players" : "Players"}</button>${S.owner ? `<button class="btn" data-act="edit" data-mid="${f.id}">${played ? "Edit result" : "Enter result"}</button>` : ""}</div>
     </div>
+    ${S.openRoster === f.id && S.openEditor !== f.id ? rosterHTML(f) : ""}
     ${S.openEditor === f.id ? editorHTML(f) : ""}
   </div>`;
+}
+/* Both teams' players for a match, visible to everyone. */
+const POS_ORDER = { GK: 0, CB: 1, ST: 2 };
+function rosterHTML(f) {
+  const s = S.stats[f.id], played = !!s, mp = played ? (playerTotals().byMatch[f.id] || {}) : {};
+  const side = (team, key) => {
+    const t = TEAM[team];
+    const keeper = played ? s.gk[key] : "";
+    const list = t.players.slice().sort((a, b) => (POS_ORDER[a.pos] ?? 9) - (POS_ORDER[b.pos] ?? 9) || a.name.localeCompare(b.name, "es"));
+    return `<div class="ro-team">
+      <h4><span class="tdot" style="--team:${t.color}"></span>${esc(team)} <small>${t.players.length} players</small></h4>
+      <table class="ro-table"><thead><tr><th>Player</th><th>Pos</th><th class="r">Price</th>${played ? '<th class="r">G</th><th class="r">A</th><th class="r">Cards</th><th class="r">Pts</th>' : ""}</tr></thead><tbody>
+      ${list.map(p => {
+        const e = played ? (s.ev[p.id] || {}) : {};
+        const cards = [e.y ? `<span class="card y" title="Yellow card">${e.y > 1 ? e.y : ""}</span>` : "", e.r ? `<span class="card r" title="Red card"></span>` : ""].join("");
+        const pts = mp[p.id] || 0;
+        return `<tr${p.id === keeper ? ' class="keeper"' : ""}>
+          <td class="pname">${esc(p.name)}${p.id === keeper ? '<small>In goal this match</small>' : ""}</td>
+          <td><span class="pos ${p.pos ? "pos-" + p.pos : "none"}">${p.pos || "—"}</span></td>
+          <td class="r num">${p.price != null ? fmtM(p.price) : "—"}</td>
+          ${played ? `<td class="r num">${+e.g || ""}</td><td class="r num">${+e.a || ""}</td><td class="r">${cards}</td><td class="r num ${pts > 0 ? "gold" : pts < 0 ? "neg-pts" : ""}">${pts}</td>` : ""}
+        </tr>`;
+      }).join("")}
+      </tbody></table>
+    </div>`;
+  };
+  return `<div class="roster">${side(f.home, "home")}${side(f.away, "away")}</div>`;
 }
 function editorHTML(f) {
   const s = S.stats[f.id] || { gk: {}, ev: {} };
@@ -1635,6 +1677,7 @@ document.addEventListener("click", e => {
   else if (act === "ed-save") saveResult(b.dataset.mid);
   else if (act === "ed-clear") clearResult(b.dataset.mid);
   else if (act === "edit-team") openTeamForm(true);
+  else if (act === "roster") { S.openRoster = S.openRoster === b.dataset.mid ? null : b.dataset.mid; if (!S.openEditor) renderMatches(); else $("fx-" + b.dataset.mid).outerHTML = fixtureHTML(FIXTURES.find(x => x.id === b.dataset.mid)); }
   else if (act === "preview") { S.previewUid = S.previewUid === b.dataset.uid ? null : b.dataset.uid; renderTable(playerTotals()); }
   else if (act === "adj") openAdj(b.dataset.pid);
   else if (act === "adj-close") { S.adjPid = null; render(); }
