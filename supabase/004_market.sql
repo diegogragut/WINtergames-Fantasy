@@ -15,7 +15,6 @@ grant select on public.player_prices to authenticated;
 
 insert into public.player_prices (player_id, pos, rating, price) values
   ('garbanzo-fc--agustin-mendez', 'CB', 4, 6),
-  ('garbanzo-fc--alejandro-garro', 'ST', 5, 8),
   ('garbanzo-fc--alejandro-vasquez', 'ST', 6, 10),
   ('garbanzo-fc--diego-gutierrez', 'GK', 4, 6),
   ('garbanzo-fc--felipe-gomez', 'ST', 2, 2),
@@ -62,6 +61,7 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('sin-pulmon--julian-garnier', 'ST', 3, 4),
   ('sin-pulmon--sebastian-madrigal', 'CB', 5, 8),
   ('sin-pulmon--felipe-volio', 'CB', 4, 6),
+  ('zopilotes-fc--alejandro-garro', 'ST', 5, 8),
   ('zopilotes-fc--alejandro-soto', 'CB', 3, 4),
   ('zopilotes-fc--andres-rodriguez', 'CB', 2, 2),
   ('zopilotes-fc--antonio-carballo', 'CB', 2, 2),
