@@ -7,11 +7,11 @@
 10 | Sergio Sauma | ST
 10 | Matias Alfaro | ST
 9 | Nicholas Cook | ST
-9 | Antonio Jimenez | ST
+9 | Toto Jay | ST
 9 | Ayote | ST
 9 | Patrick van der Laat | CB
 9 | Luciano Soto | ST
-8 | Toto Jay | ST
+8 | Antonio Jimenez | ST
 8 | Felipe Pena | ST
 8 | Roberto Zamora | ST
 8 | Julian Segura | CB
