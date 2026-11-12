@@ -45,7 +45,7 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('ayotazo-fc--alan-woodbridge', 'CB', 8, 17),
   ('ayotazo-fc--alejandro-madrigal', 'GK', 5, 8),
   ('ayotazo-fc--toto-jay', 'ST', 9, 21),
-  ('ayotazo-fc--ayote', 'ST', 9, 21),
+  ('ayotazo-fc--max-casafont', 'ST', 9, 21),
   ('ayotazo-fc--emiliano-crivelli', 'CB', 4, 6),
   ('ayotazo-fc--ignacio-bogantes', 'ST', 7, 13),
   ('ayotazo-fc--matias-alfaro', 'ST', 10, 25),
@@ -87,7 +87,7 @@ insert into public.player_prices (player_id, pos, rating, price) values
   ('limon-stars--antonio-jimenez', 'ST', 8, 17),
   ('limon-stars--emilio-atmella', 'CB', 7, 13),
   ('limon-stars--eric-brenes', 'CB', 5, 8),
-  ('limon-stars--luciano-segnini', 'ST', 5, 8),
+  ('limon-stars--luciano-segnini', 'GK', 5, 8),
   ('limon-stars--patrick-van-der-laat', 'CB', 9, 21),
   ('brasimoreros--agustin-pacheco', 'GK', 5, 8),
   ('brasimoreros--eduardo-odio', 'ST', 6, 10),
@@ -118,7 +118,7 @@ insert into public.player_prices (player_id, pos, rating, price) values
 on conflict (player_id) do update set pos = excluded.pos, rating = excluded.rating, price = excluded.price;
 
 -- Toto Jay plays for Ayotazo FC and Antonio Jimenez for Limon Stars (prices stay with each team's player).
-delete from public.player_prices where player_id in ('ayotazo-fc--antonio-jimenez', 'limon-stars--toto-jay');
+delete from public.player_prices where player_id in ('ayotazo-fc--antonio-jimenez', 'limon-stars--toto-jay', 'ayotazo-fc--ayote');
 
 -- Squad rules: max 2 per WINter team, no duplicates, every pick priced,
 -- starters in the right position, total cost within 100M, only complete squads lock.
