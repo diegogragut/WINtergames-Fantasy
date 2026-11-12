@@ -587,7 +587,7 @@ nav.tabs a[aria-current="page"] .navbadge { background: var(--frost-ink); color:
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
           <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone.</li>
-          <li>Only complete squads score.</li>
+          <li>Only complete squads score. Each match is scored with your squad exactly as it was at that match's kick-off, so changes made later only count from the next match.</li>
         </ul>
       </div>
       <div class="card">
@@ -806,6 +806,8 @@ const S = {
   stats: {},             // matchId -> { hs, as, gk: {home, away}, ev }
   positions: {},         // pid -> GK|DEF|MID|FWD
   adjust: [],            // organizer point adjustments: { id, player_id, points, reason, created_at }
+  snaps: {},             // matchId -> uid -> { slots, captain } copied at kick-off
+  runs: new Set(),       // matchIds whose kick-off copy has been taken
   adjPid: null,          // player whose adjustments panel is open
   draft: { slots: Array(7).fill(null), locked: false, captain: null },
   loadedMine: false, dirty: false, saving: false,
@@ -838,9 +840,11 @@ function playerTotals() {
   const t = {};
   PLAYERS.forEach(p => t[p.id] = { g: 0, a: 0, w: 0, cs: 0, ga: 0, y: 0, r: 0, bonus: 0, pts: 0 });
   S.adjust.forEach(a => { if (t[a.player_id]) t[a.player_id].bonus += +a.points || 0; });
+  t.byMatch = {}; // matchId -> { playerId -> points earned in that match }
   FIXTURES.forEach(f => {
     const s = S.stats[f.id];
     if (!s) return;
+    const before = Object.fromEntries(PLAYERS.map(p => [p.id, { ...t[p.id] }]));
     const hs = +s.hs || 0, as = +s.as || 0;
     const winner = hs > as ? f.home : as > hs ? f.away : null;
     if (winner) TEAM[winner].players.forEach(p => t[p.id].w += 1);
@@ -860,17 +864,46 @@ function playerTotals() {
       if (!t[pid]) return;
       t[pid].g += +e.g || 0; t[pid].a += +e.a || 0; t[pid].y += +e.y || 0; t[pid].r += +e.r || 0;
     });
+    const m = {};
+    PLAYERS.forEach(p => { const v = basePts(t[p.id]) - basePts(before[p.id]); if (v) m[p.id] = v; });
+    t.byMatch[f.id] = m;
   });
-  Object.values(t).forEach(x => x.pts = x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.ga - x.y * 2 - x.r * 5 + x.bonus);
+  PLAYERS.forEach(p => { const x = t[p.id]; x.pts = basePts(x) + x.bonus; });
   return t;
 }
+const basePts = x => x.g * 5 + x.a * 2 + x.w + x.cs * 3 - x.ga - x.y * 2 - x.r * 5;
+
+/* ---------- Manager points: each match uses the squad saved at its kick-off ---------- */
+const fixtureById = Object.fromEntries(FIXTURES.map(f => [f.id, f]));
+function squadAt(matchId, uid) {
+  // Once a match's kick-off copy exists, use it (no copy for this manager = no squad at kick-off).
+  if (S.runs.has(matchId)) return S.snaps[matchId]?.[uid] || null;
+  return S.squads[uid] || null; // copy not taken yet: use the current squad
+}
+function squadAtTime(ts, uid) {
+  const t = new Date(ts).getTime();
+  const past = FIXTURES.filter(f => f.at.getTime() <= t && S.runs.has(f.id)).sort((a, b) => b.at - a.at);
+  return past.length ? squadAt(past[0].id, uid) : (S.squads[uid] || null);
+}
+function startersPoints(sq, pointsOf) {
+  if (!sq || !isComplete(sq.slots)) return 0;
+  const starters = sq.slots.slice(0, 5);
+  return starters.reduce((n, pid) => n + (pointsOf(pid) || 0), 0)
+    + (sq.captain && starters.includes(sq.captain) ? (pointsOf(sq.captain) || 0) : 0); // captain counts double
+}
+function managerPoints(uid, totals) {
+  let sum = 0;
+  FIXTURES.forEach(f => {
+    const mp = totals.byMatch[f.id];
+    if (mp) sum += startersPoints(squadAt(f.id, uid), pid => mp[pid]);
+  });
+  // Organizer adjustments count for whoever had the player starting when the adjustment was made.
+  S.adjust.forEach(a => {
+    sum += startersPoints(squadAtTime(a.created_at, uid), pid => pid === a.player_id ? +a.points : 0);
+  });
+  return sum;
+}
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
-const squadPoints = (slots, totals, captain) => {
-  if (!isComplete(slots)) return 0;
-  const starters = slots.slice(0, 5);
-  const base = starters.reduce((n, pid) => n + (totals[pid]?.pts || 0), 0);
-  return base + (captain && starters.includes(captain) ? (totals[captain]?.pts || 0) : 0); // captain = 2x
-};
 const isApproved = uid => S.profiles[uid]?.status === "approved";
 function selectionPct() {
   const full = Object.entries(S.squads).filter(([uid, s]) => isApproved(uid) && isComplete(s.slots)).map(([, s]) => s);
@@ -1097,22 +1130,31 @@ async function enterApp() {
       .on("postgres_changes", { event: "*", schema: "public", table: "positions" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "player_adjustments" }, later)
       .on("postgres_changes", { event: "*", schema: "public", table: "league_settings" }, later)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "snapshot_runs" }, later)
       .subscribe();
   }
   showScreen("app"); showView(); render();
 }
 async function loadAll() {
-  const [pr, sq, st, po, ad, ls] = await Promise.all([
+  try { await S.sb.rpc("take_due_snapshots"); } catch (e) { /* the scheduled job takes them anyway */ }
+  const [pr, sq, st, po, ad, ls, sn, ru] = await Promise.all([
     S.sb.from("profiles").select("*"),
     S.sb.from("squads").select("*"),
     S.sb.from("match_stats").select("*"),
     S.sb.from("positions").select("*"),
     S.sb.from("player_adjustments").select("*").order("created_at"),
     S.sb.from("league_settings").select("lock_mode").eq("id", 1).maybeSingle(),
+    S.sb.from("squad_snapshots").select("match_id, user_id, slots, captain"),
+    S.sb.from("snapshot_runs").select("match_id"),
   ]);
   const err = pr.error || sq.error || st.error || po.error;
   S.adjust = ad.error ? [] : ad.data; // older databases without the table still load
   S.lockMode = ls.error || !ls.data ? "auto" : ls.data.lock_mode;
+  S.runs = new Set(ru.error ? [] : ru.data.map(r => r.match_id));
+  S.snaps = {};
+  (sn.error ? [] : sn.data).forEach(r => {
+    (S.snaps[r.match_id] ||= {})[r.user_id] = { slots: (r.slots || []).concat(Array(7)).slice(0, 7).map(x => PBYID[x] ? x : null), captain: r.captain };
+  });
   if (err) { showNotice("Couldn't refresh the league: " + err.message); return; }
   hideNotice();
   S.profiles = Object.fromEntries(pr.data.map(r => [r.id, r]));
@@ -1238,7 +1280,7 @@ function renderSquad(totals) {
   $("benchrow").innerHTML = slotHTML(5, totals) + slotHTML(6, totals);
   $("sq-name").textContent = S.profile?.team_name || "";
   $("sq-manager").textContent = S.profile ? "Manager: " + S.profile.manager_name + (S.profile.favorite_team ? " · Supports " + S.profile.favorite_team : "") : "";
-  $("mypts").textContent = squadPoints(S.draft.slots, totals, S.draft.captain);
+  $("mypts").textContent = managerPoints(S.uid, totals);
 
   const slots = S.draft.slots, n = slots.filter(Boolean).length, tc = teamCounts(slots);
   const chips = Object.entries(tc).sort().map(([t, c]) => `<span class="chip ${c > 2 ? "over" : c === 2 ? "full" : ""}">${esc(TEAM[t].abbr)} ${c}/2</span>`).join("");
@@ -1292,7 +1334,7 @@ function stateJSON(totals) {
     validation_status: { total_players: S.draft.slots.filter(Boolean).length, max_per_team_compliant: !errs.includes(TEAM_ERR), errors: errs },
     budget_m: BUDGET, spent_m: squadCost(S.draft.slots),
     captain: S.draft.captain ? PBYID[S.draft.captain]?.name : null,
-    total_points: squadPoints(S.draft.slots, totals, S.draft.captain),
+    total_points: managerPoints(S.uid, totals),
   };
 }
 function renderMarket(totals) {
@@ -1410,7 +1452,7 @@ function renderTable(totals) {
   const rows = Object.values(S.profiles).filter(p => p.manager_name && p.status === "approved").map(p => {
     const sq = S.squads[p.id], slots = sq?.slots || [];
     const n = slots.filter(Boolean).length;
-    return { p, sq, n, pts: squadPoints(slots, totals, sq?.captain) };
+    return { p, sq, n, pts: managerPoints(p.id, totals) };
   }).sort((a, b) => b.pts - a.pts || b.n - a.n || a.p.team_name.localeCompare(b.p.team_name));
   $("lb").innerHTML = rows.length ? rows.map((r, i) => {
     const status = r.n < 7 ? `<span class="pill off">Building ${r.n}/7</span>` : (r.sq.locked || !squadsOpen()) ? `<span class="pill lock">Locked</span>` : `<span class="pill ok">Complete</span>`;
