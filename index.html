@@ -526,7 +526,7 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
         </div>
         <div class="pitch" id="pitch"></div>
         <div class="bench">
-          <div class="eyebrow">Bench · 0 pts</div>
+          <div class="eyebrow">Bench · doesn't score</div>
           <div class="prow" id="benchrow"></div>
         </div>
         <div class="status" id="status"></div>
@@ -623,7 +623,7 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
           <li>Save as often as you like until the first kick-off. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
           <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone, and can close the transfer market on its own: then nobody can buy or sell players, but swaps with the bench and captain changes still work.</li>
-          <li>Only complete squads score. Each match is scored with your squad exactly as it was at that match's kick-off, so changes made later only count from the next match.</li>
+          <li>Only complete squads score. Each match is scored with your squad exactly as it was at that match's kick-off, so changes made later only count from the next match. Points already earned never change: a new captain or a new player only scores from the next kick-off on. The points on each player's card are what he has earned for that team.</li>
         </ul>
       </div>
       <div class="card">
@@ -941,17 +941,28 @@ function startersPoints(sq, pointsOf) {
   return starters.reduce((n, pid) => n + (pointsOf(pid) || 0), 0)
     + (sq.captain && starters.includes(sq.captain) ? (pointsOf(sq.captain) || 0) : 0); // captain counts double
 }
-function managerPoints(uid, totals) {
-  let sum = 0;
+// Points each player has earned for this manager: only matches where he started in the
+// squad copied at that kick-off, doubled only if he was captain in that copy. A captain
+// change or a new player never rewrites points from matches already played.
+function earnedByPlayer(uid, totals) {
+  const out = {};
+  const add = (sq, pointsOf) => {
+    if (!sq || !isComplete(sq.slots)) return;
+    sq.slots.slice(0, 5).forEach(pid => {
+      const v = pointsOf(pid) || 0;
+      if (v) out[pid] = (out[pid] || 0) + v * (pid === sq.captain ? 2 : 1);
+    });
+  };
   FIXTURES.forEach(f => {
     const mp = totals.byMatch[f.id];
-    if (mp) sum += startersPoints(squadAt(f.id, uid), pid => mp[pid]);
+    if (mp) add(squadAt(f.id, uid), pid => mp[pid]);
   });
   // Organizer adjustments count for whoever had the player starting when the adjustment was made.
-  S.adjust.forEach(a => {
-    sum += startersPoints(squadAtTime(a.created_at, uid), pid => pid === a.player_id ? +a.points : 0);
-  });
-  return sum;
+  S.adjust.forEach(a => add(squadAtTime(a.created_at, uid), pid => pid === a.player_id ? +a.points : 0));
+  return out;
+}
+function managerPoints(uid, totals) {
+  return Object.values(earnedByPlayer(uid, totals)).reduce((n, v) => n + v, 0);
 }
 const isComplete = slots => Array.isArray(slots) && slots.length === 7 && slots.every(Boolean);
 const isApproved = uid => S.profiles[uid]?.status === "approved";
@@ -1309,7 +1320,7 @@ async function save(lock = false) {
 window.addEventListener("beforeunload", e => { if (S.dirty && !isLocked()) { e.preventDefault(); e.returnValue = ""; } });
 
 /* ---------- Rendering ---------- */
-function slotHTML(i, totals) {
+function slotHTML(i, totals, earned = {}) {
   const pid = S.draft.slots[i], role = SLOTS[i];
   const tgt = S.target === i ? " target" : "";
   const label = role === "BENCH" ? "SUB" : role;
@@ -1336,17 +1347,18 @@ function slotHTML(i, totals) {
   return `<div class="slot filled${tgt}${isCap ? " captain" : ""}" style="--team:${t.color}">
     ${shirt}
     <div class="slot-name">${esc(p.name)}</div>
-    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span>${role !== "BENCH" ? ` · <span class="p num">${isCap ? totals[pid].pts * 2 + " pts (2x)" : totals[pid].pts + " pts"}</span>` : ""}</div>
+    <div class="slot-meta"><span class="role">${label}</span> · ${esc(p.team)} · <span class="num">${p.price != null ? fmtM(p.price) : "no price"}</span> · <span class="p num" title="Points ${esc(p.name)} has earned for your team">${earned[pid] || 0} pts</span></div>
     ${!canTransfer() ? "" : `<button class="remove" data-act="remove" data-slot="${i}" aria-label="Remove ${esc(p.name)}">×</button>`}
     ${role === "BENCH" && !isLocked() ? `<button class="swapbtn${S.swapFrom === i ? " on" : ""}" type="button" data-act="swap" data-slot="${i}" title="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starting ${p.pos}`}" aria-label="${S.swapFrom === i ? "Cancel swap" : `Swap ${esc(p.name)} with a starter`}">⇅</button>` : ""}
   </div>`;
 }
 function renderSquad(totals) {
+  const earned = earnedByPlayer(S.uid, totals);
   setHTML("pitch", `
-    <div class="prow">${slotHTML(0, totals)}</div>
-    <div class="prow">${slotHTML(1, totals)}${slotHTML(2, totals)}</div>
-    <div class="prow">${slotHTML(3, totals)}${slotHTML(4, totals)}</div>`);
-  setHTML("benchrow", slotHTML(5, totals) + slotHTML(6, totals));
+    <div class="prow">${slotHTML(0, totals, earned)}</div>
+    <div class="prow">${slotHTML(1, totals, earned)}${slotHTML(2, totals, earned)}</div>
+    <div class="prow">${slotHTML(3, totals, earned)}${slotHTML(4, totals, earned)}</div>`);
+  setHTML("benchrow", slotHTML(5, totals, earned) + slotHTML(6, totals, earned));
   $("sq-name").textContent = S.profile?.team_name || "";
   $("sq-manager").textContent = S.profile ? "Manager: " + S.profile.manager_name + (S.profile.favorite_team ? " · Supports " + S.profile.favorite_team : "") : "";
   $("mypts").textContent = managerPoints(S.uid, totals);
@@ -1575,15 +1587,15 @@ function renderTable(totals) {
 function previewHTML(prof, sq, totals) {
   const slots = (sq?.slots || []).concat(Array(7)).slice(0, 7);
   if (!slots.some(Boolean)) return `<div class="pv-empty">${esc(prof.team_name)} hasn't saved any players yet.</div>`;
-  const cap = sq?.captain;
+  const cap = sq?.captain, earned = earnedByPlayer(prof.id, totals);
   const card = (pid, role) => {
     if (!pid) return `<div class="pv-slot empty"><div class="pv-shirt">${role}</div><div class="pv-name">Open</div></div>`;
-    const p = PBYID[pid], t = TEAM[p.team], isCap = pid === cap, bench = role === "SUB";
-    const pts = bench ? null : (totals[pid]?.pts || 0) * (isCap ? 2 : 1);
+    const p = PBYID[pid], t = TEAM[p.team], isCap = pid === cap;
+    const pts = earned[pid] || 0;
     return `<div class="pv-slot${isCap ? " cap" : ""}" style="--team:${t.color}">
       <div class="pv-shirt">${t.abbr}${isCap ? '<span class="capc" aria-label="Captain">C</span>' : ""}</div>
       <div class="pv-name">${esc(p.name)}</div>
-      <div class="pv-meta">${p.pos} · ${p.price != null ? fmtM(p.price) : "—"}${pts != null ? ` · <b>${pts} pts${isCap ? " (2x)" : ""}</b>` : ""}</div>
+      <div class="pv-meta">${p.pos} · ${p.price != null ? fmtM(p.price) : "—"} · <b>${pts} pts</b></div>
     </div>`;
   };
   const capName = cap && PBYID[cap] ? PBYID[cap].name : null;
@@ -1593,7 +1605,7 @@ function previewHTML(prof, sq, totals) {
       <div class="pv-row">${card(slots[1], "CB")}${card(slots[2], "CB")}</div>
       <div class="pv-row">${card(slots[3], "ST")}${card(slots[4], "ST")}</div>
     </div>
-    <div class="pv-bench"><span class="eyebrow">Bench · 0 pts</span><div class="pv-row">${card(slots[5], "SUB")}${card(slots[6], "SUB")}</div></div>
+    <div class="pv-bench"><span class="eyebrow">Bench · doesn't score</span><div class="pv-row">${card(slots[5], "SUB")}${card(slots[6], "SUB")}</div></div>
     <div class="pv-foot">
       <span>Manager: <b>${esc(prof.manager_name)}</b></span>
       <span>Captain: <b>${capName ? esc(capName) : "not picked"}</b></span>
