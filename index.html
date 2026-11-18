@@ -1356,7 +1356,14 @@ setInterval(() => {
   else if (S.owner) renderLockPanel();
   lastOpen = open;
 }, 15000);
-window.addEventListener("beforeunload", e => { if (S.dirty && !isLocked()) { e.preventDefault(); e.returnValue = ""; } });
+// Leaving the page or switching apps: save the latest change right away instead of waiting.
+function saveNowIfPending() { if (canAutoSave()) save(false, true); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") saveNowIfPending(); });
+window.addEventListener("pagehide", saveNowIfPending);
+window.addEventListener("beforeunload", e => {
+  if (canAutoSave()) { save(false, true); return; } // complete squad: save it, no warning needed
+  if (S.dirty && !S.saving && !isLocked()) { e.preventDefault(); e.returnValue = ""; } // unfinished change can't be saved
+});
 
 /* ---------- Rendering ---------- */
 function slotHTML(i, totals, earned = {}) {
@@ -1810,7 +1817,13 @@ $("mkt-count").textContent = `${PLAYERS.length} players · ${TEAMS.length} WINte
   if (!cfg.supabaseUrl || !cfg.supabaseAnonKey || cfg.supabaseUrl.includes("YOUR-")) {
     showScreen("setup"); $("setup-detail").textContent = "config.js still has the placeholder values."; return;
   }
-  S.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+  // Squad saves use keepalive, so a save started as the page closes still reaches the database.
+  const keepaliveFetch = (input, init = {}) => {
+    const url = typeof input === "string" ? input : input.url;
+    const write = /\/rest\/v1\/squads/.test(url) && init.method && init.method !== "GET";
+    return fetch(input, write ? { ...init, keepalive: true } : init);
+  };
+  S.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { global: { fetch: keepaliveFetch } });
   S.sb.auth.onAuthStateChange((_event, session) => { setTimeout(() => handleSession(session), 0); });
   const { data } = await S.sb.auth.getSession();
   await handleSession(data.session);
