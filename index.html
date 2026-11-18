@@ -621,8 +621,8 @@ tr.pvrow td { padding: 0 8px 14px; background: rgba(142, 214, 255, .06); }
           <li><strong>Captain (C):</strong> tap a player's shirt to make him captain. His points count double. You need a captain to save your squad. A captain on the bench scores 0, like any bench player.</li>
           <li>Prices come from each player's rating: 10 = 25M, 9 = 21M, 8 = 17M, 7 = 13M, 6 = 10M, 5 = 8M, 4 = 6M, 3 = 4M, 2 = 2M.</li>
           <li>Maximum <strong>2 players</strong> from any one WINter team.</li>
-          <li>Save as often as you like until the first kick-off. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
-          <li>All squads lock at <strong id="rules-deadline"></strong>, the first kick-off. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone, and can close the transfer market on its own: then nobody can buy or sell players, but swaps with the bench and captain changes still work.</li>
+          <li>Make changes whenever squads are open. Use <strong>⇅</strong> on a bench player to swap him with a starter in the same position.</li>
+          <li>Squads lock automatically on every match day from <strong>12:25 to 13:15</strong> (5 minutes before kick-off until the matches end), and are open the rest of the time. Your changes save automatically, so whatever you have when squads lock is what plays. While squads are locked nobody can change players or captain. Organizers can lock or unlock squads for everyone, and can close the transfer market on its own: then nobody can buy or sell players, but swaps with the bench and captain changes still work.</li>
           <li>Only complete squads score. Each match is scored with your squad exactly as it was at that match's kick-off, so changes made later only count from the next match. Points already earned never change: a new captain or a new player only scores from the next kick-off on. The points on each player's card are what he has earned for that team.</li>
         </ul>
       </div>
@@ -868,16 +868,26 @@ function setHTML(el, html) {
 const fmtDay = d => d.toLocaleDateString("en-US", { timeZone: "America/Costa_Rica", weekday: "long", month: "short", day: "numeric" });
 const fmtTime = d => d.toLocaleTimeString("en-GB", { timeZone: "America/Costa_Rica", hour: "2-digit", minute: "2-digit" });
 const pastDeadline = () => Date.now() >= DEADLINE.getTime();
-// Squads are open until the first kick-off, unless an organizer locked or unlocked them for everyone.
-const squadsOpen = () => S.lockMode === "locked" ? false : S.lockMode === "open" ? true : !pastDeadline();
+// Squads lock from 5 minutes before each kick-off until 45 minutes after it (12:25–13:15),
+// unless an organizer locked or opened them for everyone. Same rule as squads_open() in the database.
+const LOCK_BEFORE = 5 * 60000, UNLOCK_AFTER = 45 * 60000;
+const lockWindow = (now = Date.now()) => FIXTURES.find(f => now >= f.at.getTime() - LOCK_BEFORE && now < f.at.getTime() + UNLOCK_AFTER) || null;
+const nextLockAt = (now = Date.now()) => { const f = FIXTURES.find(f => f.at.getTime() - LOCK_BEFORE > now); return f ? new Date(f.at.getTime() - LOCK_BEFORE) : null; };
+const squadsOpen = () => S.lockMode === "locked" ? false : S.lockMode === "open" ? true : !lockWindow();
 const isLocked = () => S.draft.locked || !squadsOpen();
 const marketOpen = () => S.marketMode !== "locked";
 const canTransfer = () => !isLocked() && marketOpen(); // buy/sell players (swaps and captain only need !isLocked())
 const MARKET_MSG = "The transfer market is closed, so players can't be bought or sold right now. You can still swap with your bench and change captain.";
+function scheduleText() {
+  const w = lockWindow();
+  if (w) return `Squads are locked during today's matches. They open again at ${fmtTime(new Date(w.at.getTime() + UNLOCK_AFTER))}.`;
+  const n = nextLockAt();
+  return n ? `Squads are open. They lock at ${fmtTime(n)} on ${fmtDay(n)}, 5 minutes before kick-off.` : "Squads are open.";
+}
 function lockText() {
   if (S.lockMode === "locked") return "Squads are locked by the organizer. No changes until they unlock them.";
-  if (S.lockMode === "open") return pastDeadline() ? "The organizer opened squads for changes. Save before they lock them again." : "Squads are open for changes.";
-  return pastDeadline() ? "Squads are locked. No changes until an organizer unlocks them." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}.`;
+  if (S.lockMode === "open") return "The organizer opened squads for changes. Changes save automatically.";
+  return scheduleText();
 }
 
 function showScreen(name) {
@@ -1008,7 +1018,7 @@ function showWait() {
   $("wait-team").textContent = p.team_name;
   $("wait-manager").textContent = p.manager_name;
   $("wait-email").textContent = S.user?.email || "";
-  $("wait-deadline").textContent = !squadsOpen() ? "Squads are locked right now, so new squads can't be picked until an organizer unlocks them." : pastDeadline() ? "Squads are open for changes right now." : `Squads lock at the first kick-off: ${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}. Get accepted before then to pick yours.`;
+  $("wait-deadline").textContent = lockText();
   $("wait-msg").hidden = true;
   showScreen("wait");
   startWaitWatch();
@@ -1059,12 +1069,16 @@ async function setMemberStatus(id, status) {
 function renderLockPanel() {
   const open = squadsOpen(), c = S.confirmLockMode;
   const state = open ? `<span class="pill ok">Squads open</span>` : `<span class="pill lock">Squads locked</span>`;
-  const how = S.lockMode === "locked" ? "You locked squads for everyone." : S.lockMode === "open" ? "You unlocked squads for everyone." : pastDeadline() ? "Locked automatically at the first kick-off." : `Open until the first kick-off (${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}), then they lock automatically.`;
+  const how = S.lockMode === "locked" ? "You locked squads for everyone. The match-day schedule is paused until you unlock."
+    : S.lockMode === "open" ? "You opened squads for everyone. The match-day schedule is paused, so they stay open during matches."
+    : "Automatic: locked 12:25–13:15 on match days, open the rest of the time. " + scheduleText();
   let btns;
   if (c === "locked") btns = `<span>Lock every squad now? Nobody can change players or captain until you unlock.</span><button class="btn danger" data-act="lockmode-go" data-mode="locked">Yes, lock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
-  else if (c === "open") btns = `<span>Unlock every squad? Everyone can change players and captain until you lock again.</span><button class="btn ok" data-act="lockmode-go" data-mode="open">Yes, unlock for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
-  else btns = (open ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : `<button class="btn ok" data-act="lockmode" data-mode="open">Unlock squads for everyone</button>`)
-    + (S.lockMode !== "auto" && !pastDeadline() ? `<button class="btn" data-act="lockmode-go" data-mode="auto">Back to automatic</button>` : "");
+  else if (c === "open") btns = `<span>Open every squad now, even during a match? They stay open until you lock them or go back to automatic.</span><button class="btn ok" data-act="lockmode-go" data-mode="open">Yes, open for everyone</button><button class="btn" data-act="lockmode-cancel">Cancel</button>`;
+  else btns = (S.lockMode !== "locked" && open ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : "")
+    + (S.lockMode === "auto" && !open ? `<button class="btn ok" data-act="lockmode" data-mode="open">Open squads now anyway</button>` : "")
+    + (S.lockMode !== "auto" ? `<button class="btn ok" data-act="lockmode-go" data-mode="auto">${S.lockMode === "locked" ? "Unlock (back to automatic)" : "Back to automatic"}</button>` : "")
+    + (S.lockMode === "open" ? `<button class="btn danger" data-act="lockmode" data-mode="locked">Lock squads for everyone</button>` : "");
   const mOpen = marketOpen(), mc = S.confirmMarket;
   const mState = mOpen ? `<span class="pill ok">Market open</span>` : `<span class="pill lock">Market closed</span>`;
   const mHow = mOpen ? "Managers can buy and sell players while squads are open." : "Nobody can buy or sell players. Swaps with the bench and captain changes still work while squads are open.";
@@ -1296,14 +1310,16 @@ function validation(slots) {
   });
   return errors;
 }
-async function save(lock = false) {
+async function save(lock = false, auto = false) {
   if (!S.uid || S.saving) return;
+  clearTimeout(autoTimer);
   if (!S.draft.captain || !S.draft.slots.includes(S.draft.captain)) { setMsg("Pick a captain before saving: tap a player's shirt."); render(); return; }
   if (lock && validation(S.draft.slots).length) return;
   S.saving = true; render();
   const row = { user_id: S.uid, slots: S.draft.slots.slice(), captain: S.draft.slots.includes(S.draft.captain) ? S.draft.captain : null, locked: lock || S.draft.locked };
   const { error } = await S.sb.from("squads").upsert(row);
   S.saving = false;
+  S.lastTry = draftKey();
   if (error) {
     const m = error.message || "";
     if (m.includes("Invalid Squad")) setMsg(TEAM_ERR);
@@ -1313,10 +1329,33 @@ async function save(lock = false) {
   } else {
     S.draft.locked = row.locked; S.dirty = false; S.confirmLock = false;
     S.squads[S.uid] = { ...row };
-    setMsg(lock ? "Squad locked. Good luck!" : "Squad saved.", "ok");
+    if (draftKey() !== JSON.stringify([row.slots, row.captain])) S.dirty = true; // changed again while saving
+    setMsg(lock ? "Squad locked. Good luck!" : auto ? "Saved automatically." : "Squad saved.", "ok");
   }
   render();
 }
+// Auto-save: every complete squad that passes the rules (7 players, captain picked, budget,
+// 2 per team, positions) is saved a moment later, so the squad that's there when squads lock is the one that plays.
+let autoTimer = null;
+const draftKey = () => JSON.stringify([S.draft.slots, S.draft.captain]);
+function canAutoSave() {
+  const d = S.draft;
+  return S.dirty && !S.saving && !isLocked() && d.captain && d.slots.includes(d.captain)
+    && !validation(d.slots).length && S.lastTry !== draftKey(); // only full 7-player squads, so a half-finished change never replaces a complete one
+}
+function queueAutoSave() {
+  clearTimeout(autoTimer);
+  if (canAutoSave()) autoTimer = setTimeout(() => { if (canAutoSave()) save(false, true); }, 800);
+}
+// Re-check the lock every 15 seconds so squads lock at 12:25 and open at 13:15 without a reload.
+let lastOpen = null;
+setInterval(() => {
+  if (!S.profile || $("screen-app").hidden) return;
+  const open = squadsOpen();
+  if (lastOpen !== null && open !== lastOpen) render();
+  else if (S.owner) renderLockPanel();
+  lastOpen = open;
+}, 15000);
 window.addEventListener("beforeunload", e => { if (S.dirty && !isLocked()) { e.preventDefault(); e.returnValue = ""; } });
 
 /* ---------- Rendering ---------- */
@@ -1375,7 +1414,7 @@ function renderSquad(totals) {
       <button class="btn" data-act="lock-cancel">Cancel</button>`;
   } else {
     const noCap = !S.draft.captain;
-    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty || noCap ? "disabled" : ""} title="${noCap ? "Pick a captain first" : ""}">${S.saving ? "Saving…" : !S.dirty ? "Saved" : noCap ? "Pick a captain to save" : "Save squad"}</button>`;
+    actions = `<button class="btn primary" data-act="save" ${S.saving || !S.dirty || noCap ? "disabled" : ""} title="${noCap ? "Pick a captain first" : ""}">${S.saving ? "Saving…" : !S.dirty ? "Saved ✓" : noCap ? "Pick a captain to save" : "Save squad"}</button>`;
   }
   const msg = S.msg ? `<div class="${S.msg.kind === "ok" ? "okmsg" : "err"}">${esc(S.msg.text)}</div>` : "";
   const errLine = !S.msg ? errs.filter(e => !e.startsWith("Squad incomplete")).map(e => `<div class="err">${esc(e)}</div>`).join("") : "";
@@ -1401,6 +1440,7 @@ function renderSquad(totals) {
     ${marketNote}
     ${captainLine}
     ${hint}${msg}${errLine}
+    ${S.dirty && !isLocked() && !S.saving && (n < 7 || !S.draft.captain) && isComplete(S.squads[S.uid]?.slots) ? `<div class="capline need"><span>Not saved yet: finish your 7 players and pick a captain. Until then, your last saved squad is the one that plays.</span></div>` : ""}
     <div class="actions">${actions}</div>
     <div class="deadline">${esc(lockText())}</div>
     <details class="json"><summary>Squad data (JSON)</summary><pre>${esc(JSON.stringify(stateJSON(totals), null, 2))}</pre></details>`);
@@ -1633,6 +1673,7 @@ function render() {
   if (isLocked()) S.swapFrom = null;
   const totals = playerTotals();
   renderWho(); renderSquad(totals); renderMarket(totals); renderMatches(); renderTable(totals); renderAdj(totals); renderManagers();
+  queueAutoSave();
 }
 
 /* ---------- Organizer point adjustments ---------- */
@@ -1759,7 +1800,6 @@ const teamOptions = TEAMS.map(([n]) => `<option value="${esc(n)}">${esc(n)}</opt
 $("f-team").insertAdjacentHTML("beforeend", teamOptions);
 $("t-fav").insertAdjacentHTML("beforeend", teamOptions);
 $("mkt-count").textContent = `${PLAYERS.length} players · ${TEAMS.length} WINter teams`;
-$("rules-deadline").textContent = `${fmtDay(DEADLINE)}, ${fmtTime(DEADLINE)}`;
 
 /* ---------- Boot ---------- */
 (async () => {
